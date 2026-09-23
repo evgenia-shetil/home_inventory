@@ -27,7 +27,11 @@ export default function ItemScreen() {
       .order('created_at', { ascending: false }).limit(50)
       .then(({ data }) => { if (!cancelled) setEvents(data ?? []) })
     return () => { cancelled = true }
-  }, [id, item?.qty])
+    // Залежність саме від updated_at, а не від qty: кількість змінюється
+    // оптимістично ще до запиту, тож перезавантаження історії стартувало б
+    // раніше, ніж подія потрапить у базу. updated_at ставить сервер,
+    // тому його поява — надійна ознака, що запис уже там.
+  }, [id, item?.updated_at])
 
   if (!item) return <p className="muted">Товар не знайдено.</p>
 
