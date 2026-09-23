@@ -611,7 +611,9 @@ details.edit .stack { gap: 12px; }
 .screenhead { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .screenhead h1 { margin: 4px 0; }
 .iconbtn {
-  width: 44px; height: 44px; flex: 0 0 44px;
+  /* min-height обовʼязково: глобальне button { min-height: 48px }
+     інакше перебиває висоту, і коло стає овалом 44×48. */
+  width: 44px; height: 44px; min-height: 44px; flex: 0 0 44px;
   padding: 0; border-radius: 50%;
   background: transparent; color: var(--muted);
   border: 1px solid var(--line-strong);
