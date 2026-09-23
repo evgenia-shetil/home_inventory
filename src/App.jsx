@@ -9,6 +9,8 @@ import AddItemScreen from './screens/AddItemScreen.jsx'
 import ItemScreen from './screens/ItemScreen.jsx'
 import SettingsScreen from './screens/SettingsScreen.jsx'
 import ScanScreen from './screens/ScanScreen.jsx'
+import CategoriesScreen from './screens/CategoriesScreen.jsx'
+import CategoryScreen from './screens/CategoryScreen.jsx'
 import BottomNav from './ui/BottomNav.jsx'
 import UndoToast from './ui/UndoToast.jsx'
 import NetworkBanner from './ui/NetworkBanner.jsx'
@@ -35,6 +37,8 @@ export default function App() {
           <Route path="/shopping" element={<ShoppingScreen />} />
           <Route path="/add" element={<AddItemScreen />} />
           <Route path="/scan" element={<ScanScreen />} />
+          <Route path="/categories" element={<CategoriesScreen />} />
+          <Route path="/category/:id" element={<CategoryScreen />} />
           <Route path="/item/:id" element={<ItemScreen />} />
           <Route path="/settings" element={<SettingsScreen email={session.user.email} />} />
         </Routes>

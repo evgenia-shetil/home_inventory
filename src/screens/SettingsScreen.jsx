@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase.js'
 import { validatePassword, authErrorMessage } from '../domain/credentials.js'
 
@@ -35,6 +36,9 @@ export default function SettingsScreen({ email }) {
     <div className="stack">
       <h1>Ще</h1>
       <p className="muted">Ти увійшла як {email}</p>
+
+      <h2>Категорії</h2>
+      <Link to="/categories"><button type="button" className="ghost">Керувати категоріями</button></Link>
 
       <form onSubmit={changePassword} className="stack">
         <h2>Пароль</h2>

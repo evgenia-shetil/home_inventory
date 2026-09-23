@@ -3,15 +3,22 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase.js'
 import { usePhotoUrl } from '../lib/photos.js'
 import { useInventory } from '../data/InventoryContext.jsx'
-import { formatQty, formatPrice, formatTotal } from '../lib/format.js'
+import { formatQty, formatPrice } from '../lib/format.js'
+import { collectPlaces } from '../domain/places.js'
+import { parseQty } from '../domain/quantity.js'
+import QtyInput from '../ui/QtyInput.jsx'
+import PlaceInput from '../ui/PlaceInput.jsx'
 
 const KIND_LABEL = { consume: 'витрата', restock: 'поповнення', correction: 'виправлення' }
 
 export default function ItemScreen() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { items, adjust, deleteItem, uploadPhoto } = useInventory()
+  const { items, categories, adjust, deleteItem, uploadPhoto } = useInventory()
   const item = items.find(i => i.id === id)
+  const places = collectPlaces(items)
+  const categoryName =
+    categories.find(c => c.id === item?.category_id)?.name ?? 'без категорії'
 
   const [events, setEvents] = useState([])
   const [restock, setRestock] = useState({ qty: '1', price: '', place: '' })
@@ -40,7 +47,7 @@ export default function ItemScreen() {
     setBusy(true)
     setError(null)
     try {
-      await adjust(item.id, Number(restock.qty), 'restock', {
+      await adjust(item.id, parseQty(restock.qty), 'restock', {
         price: restock.price === '' ? null : Number(restock.price),
         place: restock.place.trim() || null,
       })
@@ -87,9 +94,8 @@ export default function ItemScreen() {
 
       <dl className="facts">
         <dt>Ціна за одиницю</dt><dd>{formatPrice(item.last_price)}</dd>
-        <dt>Вартість залишку</dt><dd>{formatTotal(item.qty, item.last_price)}</dd>
         <dt>Де куплено</dt><dd>{item.last_place ?? '—'}</dd>
-        <dt>Поріг</dt><dd>{formatQty(item.threshold, item.unit)}</dd>
+        <dt>Категорія</dt><dd>{categoryName}</dd>
         <dt>Штрихкод</dt>
         <dd>
           {item.barcode
@@ -100,25 +106,30 @@ export default function ItemScreen() {
 
       <form onSubmit={handleRestock} className="stack">
         <h2>Поповнити</h2>
+        <div className="field">
+          Скільки додати
+          <QtyInput
+            value={restock.qty}
+            unit={item.unit}
+            onChange={v => setRestock(r => ({ ...r, qty: v }))}
+          />
+        </div>
         <div className="row">
-          <label className="field">
-            Скільки додати
-            <input type="number" inputMode="decimal" step="any" min="0.01" required
-                   value={restock.qty}
-                   onChange={e => setRestock(r => ({ ...r, qty: e.target.value }))} />
-          </label>
           <label className="field">
             Нова ціна
             <input type="number" inputMode="decimal" step="0.01" min="0"
                    value={restock.price}
                    onChange={e => setRestock(r => ({ ...r, price: e.target.value }))} />
           </label>
+          <div className="field">
+            Де куплено
+            <PlaceInput
+              value={restock.place}
+              places={places}
+              onChange={v => setRestock(r => ({ ...r, place: v }))}
+            />
+          </div>
         </div>
-        <label className="field">
-          Де куплено
-          <input value={restock.place}
-                 onChange={e => setRestock(r => ({ ...r, place: e.target.value }))} />
-        </label>
         {error && <p className="error">{error}</p>}
         <button type="submit" disabled={busy}>{busy ? 'Зберігаю…' : 'Поповнити'}</button>
       </form>

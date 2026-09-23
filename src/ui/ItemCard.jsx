@@ -1,13 +1,12 @@
 import { Link } from 'react-router-dom'
 import { usePhotoUrl } from '../lib/photos.js'
 import { formatQty } from '../lib/format.js'
-import { isLow } from '../domain/sorting.js'
 
-export default function ItemCard({ item, onConsume }) {
+export default function ItemCard({ item, low, onConsume }) {
   const url = usePhotoUrl(item.photo_path)
 
   return (
-    <article className={`card${isLow(item) ? ' card--low' : ''}`}>
+    <article className={`card${low ? ' card--low' : ''}`}>
       <Link to={`/item/${item.id}`} className="card__link">
         {url
           ? <img src={url} alt="" className="card__photo" loading="lazy" />

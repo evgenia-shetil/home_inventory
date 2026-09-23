@@ -143,9 +143,43 @@ export function InventoryProvider({ userId, children }) {
     return path
   }, [userId, updateItem])
 
+  const reloadCategories = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('categories').select('*').order('sort_order')
+    if (error) throw error
+    setCategories(data)
+  }, [])
+
+  const createCategory = useCallback(async (name, parentId = null) => {
+    const { error } = await supabase.from('categories').insert({
+      user_id: userId,
+      name: name.trim(),
+      parent_id: parentId,
+      // В кінець списку: нові категорії не мають перемішувати звичний порядок.
+      sort_order: 999,
+    })
+    if (error) throw error
+    await reloadCategories()
+  }, [userId, reloadCategories])
+
+  const updateCategory = useCallback(async (id, fields) => {
+    const { error } = await supabase.from('categories').update(fields).eq('id', id)
+    if (error) throw error
+    await reloadCategories()
+  }, [reloadCategories])
+
+  // Видалення батька забирає й дітей (cascade), а товари з цих категорій
+  // лишаються без категорії, але не зникають (items.category_id set null).
+  const deleteCategory = useCallback(async id => {
+    const { error } = await supabase.from('categories').delete().eq('id', id)
+    if (error) throw error
+    await Promise.all([reloadCategories(), reload()])
+  }, [reloadCategories, reload])
+
   const value = {
     items, categories, status, error, online, lastAction,
     reload, adjust, undo, createItem, updateItem, deleteItem, uploadPhoto,
+    createCategory, updateCategory, deleteCategory,
     clearLastAction: () => setLastAction(null),
   }
 

@@ -1,11 +1,11 @@
-export default function CategoryStrip({ categories, selected, onSelect }) {
+export default function CategoryStrip({ categories, selected, onSelect, allLabel = 'усі' }) {
   return (
     <nav className="strip" aria-label="Категорії">
       <button
         className={`chip${selected === null ? ' chip--on' : ''}`}
         onClick={() => onSelect(null)}
       >
-        усі
+        {allLabel}
       </button>
       {categories.map(c => (
         <button
