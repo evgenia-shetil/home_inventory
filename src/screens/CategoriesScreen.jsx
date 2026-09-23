@@ -73,7 +73,7 @@ export default function CategoriesScreen() {
         <span>{category.name}</span>
         <span className="cat__actions">
           <button className="link" disabled={busy} onClick={() => handleRename(category)}>назва</button>
-          <button className="link" disabled={busy} onClick={() => handleDelete(category)}>видалити</button>
+          <button className="link link--danger" disabled={busy} onClick={() => handleDelete(category)}>видалити</button>
         </span>
       </div>
       {!isRoot && <div className="cat__threshold">

@@ -2,8 +2,13 @@
   --bg: #faf9f7;
   --surface: #ffffff;
   --text: #1c1b1a;
-  --muted: #7a7570;
+  /* 4.93:1 на тлі — попередній #7a7570 давав 4.33 і не проходив AA
+     для дрібного тексту, яким набрано майже все другорядне. */
+  --muted: #726c66;
   --line: #e7e3de;
+  /* Межа полів вводу мусить бути помітною: 3.22:1 на білому.
+     Декоративні межі карток лишаються тонкими. */
+  --line-strong: #978e83;
   --accent: #2f6d5b;
   --warn: #b4531f;
   --radius: 14px;
@@ -11,6 +16,17 @@
 }
 
 * { box-sizing: border-box; }
+
+/* Видимий фокус був відсутній узагалі: з клавіатури й зі switch control
+   неможливо було зрозуміти, де ти зараз. */
+:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+h1 { font-size: 26px; line-height: 1.15; margin: 4px 0 12px; }
+h2 { font-size: 18px; line-height: 1.2; margin: 20px 0 4px; }
 
 body {
   margin: 0;
@@ -40,7 +56,7 @@ input, select, button, textarea {
   font: inherit;
   padding: 14px;
   border-radius: var(--radius);
-  border: 1px solid var(--line);
+  border: 1px solid var(--line-strong);
   background: var(--surface);
   color: var(--text);
   width: 100%;
@@ -160,7 +176,15 @@ button:disabled { opacity: .5; }
   display: grid; place-items: center;
   text-decoration: none; color: var(--muted); font-weight: 600;
 }
-.bottomnav a.on { color: var(--text); }
+.bottomnav a.on { color: var(--text); font-weight: 700; }
+/* Колір сам по собі не є ознакою: дублюємо насиченістю і рискою. */
+.bottomnav a.on::before {
+  content: '';
+  position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  width: 44px; height: 3px;
+  background: var(--accent); border-radius: 0 0 3px 3px;
+}
+.bottomnav a { position: relative; }
 
 .skeleton { height: 200px; background: var(--line); animation: pulse 1.2s infinite; }
 @keyframes pulse { 50% { opacity: .5; } }
@@ -201,7 +225,9 @@ button:disabled { opacity: .5; }
   cursor: pointer;
 }
 .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.ghost { background: transparent; color: var(--muted); border: 1px solid var(--line); }
+.ghost { background: transparent; color: var(--text); border: 1px solid var(--line-strong); }
+/* Руйнівна дія мусить виглядати інакше за звичайну другорядну. */
+.danger { background: transparent; color: var(--warn); border: 1px solid var(--warn); }
 /* Незворотна дія отримує колір попередження, а не нейтральний вигляд
    поруч зі «Скасувати» чи «Вийти з акаунта» — інакше палець не відчуває
    різниці між службовою кнопкою і тою, що стирає товар і його історію. */
@@ -336,8 +362,15 @@ button:disabled { opacity: .5; }
 }
 .cat__threshold .qtyinput__btn { width: 44px; flex: 0 0 44px; min-height: 40px; }
 .cat__threshold .link { align-self: flex-start; font-size: 13px; }
-.cat__actions { display: flex; gap: 10px; flex: 0 0 auto; }
-.cat__actions .link { width: auto; font-size: 13px; padding: 4px; }
+.cat__actions { display: flex; gap: 4px; flex: 0 0 auto; }
+/* Ціль була заввишки ~21px і стояла впритул до руйнівної дії.
+   44px — мінімум, нижче якого палець промахується. */
+.cat__actions .link {
+  width: auto; min-height: 44px;
+  padding: 0 10px; font-size: 13px;
+  display: inline-flex; align-items: center;
+}
+.cat__actions .link--danger { color: var(--warn); }
 .cat__add { display: flex; gap: 8px; margin-top: 10px; }
 .cat__add input { flex: 1; }
 .cat__add button { width: 52px; flex: 0 0 52px; font-size: 22px; }
@@ -406,3 +439,22 @@ button:disabled { opacity: .5; }
 }
 
 .search { margin-bottom: 12px; }
+
+/* Анімація очікування не повинна миготіти тим, кому це заважає. */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton { animation: none; }
+  * { transition: none !important; }
+}
+
+details.edit { border-top: 1px solid var(--line); padding-top: 8px; }
+details.edit > summary {
+  cursor: pointer;
+  padding: 12px 0;
+  font-weight: 600;
+  color: var(--accent);
+  list-style: none;
+}
+details.edit > summary::-webkit-details-marker { display: none; }
+details.edit > summary::after { content: ' ▾'; }
+details.edit[open] > summary::after { content: ' ▴'; }
+details.edit .stack { gap: 12px; }

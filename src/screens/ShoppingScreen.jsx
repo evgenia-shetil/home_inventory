@@ -47,10 +47,10 @@ export default function ShoppingScreen() {
       <ul className="shopping">
         {low.map(group => (
           <li key={group.key}>
-            {/* Одинокий товар без підкатегорії вже назвав себе в group.name:
-                другий раз та сама назва в брендовому рядку нижче була б
-                чистим повтором без нової інформації. */}
-            {group.items.length > 1 && <p className="shopping__name">{group.name}</p>}
+            {/* Повтор виникає лише в товару БЕЗ категорії: там назва групи
+                і назва товару — буквально одне й те саме. Якщо ж група є
+                категорією, вона каже чого бракує, а товар — якої марки. */}
+            {group.categoryId && <p className="shopping__name">{group.name}</p>}
             <p className="muted">
               лишилось {formatQty(group.total, group.unit)}, поріг {formatQty(group.threshold, group.unit)}
             </p>
@@ -59,9 +59,7 @@ export default function ShoppingScreen() {
               {group.items.map(item => (
                 <li key={item.id}>
                   <Link to={`/item/${item.id}`} className="brand">
-                    <span className="brand__name">
-                      {group.items.length > 1 ? item.name : group.name}
-                    </span>
+                    <span className="brand__name">{item.name}</span>
                     <span className="brand__meta">
                       {formatQty(item.qty, item.unit)}
                       {item.last_price !== null && ` · ${formatPrice(item.last_price)}`}

@@ -30,8 +30,6 @@ export default function ItemScreen() {
 
   const photoUrl = usePhotoUrl(item?.photo_path)
 
-  // Назва редагується локально й зберігається, коли поле втрачає фокус:
-  // писати в базу на кожну літеру немає сенсу.
   useEffect(() => { if (item) setName(item.name) }, [item?.id, item?.name])
   useEffect(() => { if (item) setRecount(String(item.qty)) }, [item?.id, item?.qty])
 
@@ -51,15 +49,15 @@ export default function ItemScreen() {
   const rootId = current ? (current.parent_id ?? current.id) : ''
   const childId = current?.parent_id ? current.id : ''
 
-  const save = (fields, message) =>
-    updateItem(item.id, fields)
-      .then(() => { setError(null); if (message) flash(message) })
-      .catch(err => setError(err.message))
-
   const flash = message => {
     setNote(message)
     setTimeout(() => setNote(null), 2500)
   }
+
+  const save = (fields, message) =>
+    updateItem(item.id, fields)
+      .then(() => { setError(null); if (message) flash(message) })
+      .catch(err => setError(err.message))
 
   async function handleRestock(e) {
     e.preventDefault()
@@ -149,6 +147,7 @@ export default function ItemScreen() {
       <dl className="facts">
         <dt>Ціна за одиницю</dt><dd>{formatPrice(item.last_price)}</dd>
         <dt>Де куплено</dt><dd>{item.last_place ?? '—'}</dd>
+        <dt>Категорія</dt><dd>{current?.name ?? 'без категорії'}</dd>
         <dt>Штрихкод</dt>
         <dd>
           {item.barcode
@@ -156,43 +155,6 @@ export default function ItemScreen() {
             : <Link to={`/scan?attach=${item.id}`} className="linkline">привʼязати</Link>}
         </dd>
       </dl>
-
-      <div className="row">
-        <label className="field">
-          Категорія
-          <CategorySelect
-            value={rootId}
-            onChange={cat => save({ category_id: cat || null })}
-          />
-        </label>
-        <label className="field">
-          Підкатегорія
-          <CategorySelect
-            value={childId}
-            parentId={rootId || null}
-            disabled={!rootId}
-            emptyLabel={rootId ? 'не обрано' : 'спершу обери категорію'}
-            onChange={cat => save({ category_id: cat || rootId || null })}
-          />
-        </label>
-      </div>
-
-      <label className="field">
-        Одиниця виміру
-        <select value={item.unit} onChange={e => save({ unit: e.target.value }, 'Одиницю змінено')}>
-          {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
-        </select>
-      </label>
-
-      <form onSubmit={handleRecount} className="stack">
-        <h2>Перерахувати</h2>
-        <p className="muted">
-          Порахувала полицю й число не збіглось — впиши, скільки насправді.
-          У журналі зʼявиться виправлення.
-        </p>
-        <QtyInput value={recount} onChange={setRecount} unit={item.unit} />
-        <button type="submit" className="ghost" disabled={busy}>Виправити кількість</button>
-      </form>
 
       <form onSubmit={handleRestock} className="stack">
         <h2>Поповнити</h2>
@@ -211,17 +173,62 @@ export default function ItemScreen() {
                    value={restock.price}
                    onChange={e => setRestock(r => ({ ...r, price: e.target.value }))} />
           </label>
-          <label className="field">
+          <div className="field">
             Де куплено
             <PlaceInput
               value={restock.place}
               places={places}
               onChange={v => setRestock(r => ({ ...r, place: v }))}
             />
-          </label>
+          </div>
         </div>
         <button type="submit" disabled={busy}>{busy ? 'Зберігаю…' : 'Поповнити'}</button>
       </form>
+
+      {/* Другорядне сховане за розкриттям: щодня потрібні лише «−1»
+          і поповнення, решта — зрідка й навмисно. */}
+      <details className="edit">
+        <summary>Виправити й налаштувати</summary>
+        <div className="stack">
+          <form onSubmit={handleRecount} className="stack">
+            <p className="muted">
+              Порахувала полицю й число не збіглось — впиши, скільки насправді.
+              У журналі зʼявиться виправлення.
+            </p>
+            <QtyInput value={recount} onChange={setRecount} unit={item.unit} />
+            <button type="submit" className="ghost" disabled={busy}>Виправити кількість</button>
+          </form>
+
+          <div className="row">
+            <div className="field">
+              Категорія
+              <CategorySelect
+                value={rootId}
+                onChange={cat => save({ category_id: cat || null })}
+              />
+            </div>
+            <div className="field">
+              Підкатегорія
+              <CategorySelect
+                value={childId}
+                parentId={rootId || null}
+                disabled={!rootId}
+                emptyLabel={rootId ? 'не обрано' : 'спершу обери категорію'}
+                onChange={cat => save({ category_id: cat || rootId || null })}
+              />
+            </div>
+          </div>
+
+          <label className="field">
+            Одиниця виміру
+            <select value={item.unit} onChange={e => save({ unit: e.target.value }, 'Одиницю змінено')}>
+              {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+            </select>
+          </label>
+
+          <button type="button" className="danger" onClick={handleDelete}>Видалити товар</button>
+        </div>
+      </details>
 
       <h2>Історія</h2>
       {events.length === 0
@@ -243,8 +250,6 @@ export default function ItemScreen() {
               </li>
             ))}
           </ul>}
-
-      <button className="ghost ghost--danger" onClick={handleDelete}>Видалити товар</button>
     </div>
   )
 }
