@@ -202,8 +202,9 @@ button:disabled { opacity: .5; }
   background: var(--surface); border-top: 1px solid var(--line);
 }
 .bottomnav a {
-  display: grid; place-items: center;
-  text-decoration: none; color: var(--muted); font-weight: 600;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2px;
+  text-decoration: none; color: var(--muted); font-weight: 600; font-size: 12px;
 }
 .bottomnav a.on { color: var(--text); font-weight: 700; }
 /* Колір сам по собі не є ознакою: дублюємо насиченістю і рискою. */
@@ -286,6 +287,9 @@ button:disabled { opacity: .5; }
 .shopping .muted { margin: 2px 0 0; font-size: 13px; }
 
 .link {
+  /* width: auto обовʼязково: глобальне button { width: 100% } інакше
+     розтягує текстову кнопку на всю ширину і видавлює сусідів. */
+  width: auto;
   background: transparent;
   color: var(--muted);
   border: none;
@@ -495,3 +499,57 @@ details.edit > summary::-webkit-details-marker { display: none; }
 details.edit > summary::after { content: ' ▾'; }
 details.edit[open] > summary::after { content: ' ▴'; }
 details.edit .stack { gap: 12px; }
+
+/* Своє вікно замість нативних confirm/prompt: однакова мова з рештою
+   застосунку і місце, щоб пояснити наслідки дії. */
+.dialog__backdrop {
+  position: fixed; inset: 0; z-index: 50;
+  background: rgba(0,0,0,.45);
+  display: grid; place-items: center;
+  padding: 16px;
+}
+.dialog {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 20px;
+  max-width: 420px; width: 100%;
+  box-shadow: 0 12px 40px rgba(0,0,0,.25);
+}
+.dialog h2 { margin: 0 0 8px; }
+.dialog__actions { display: flex; gap: 8px; margin-top: 20px; }
+.dialog__actions button { flex: 1; }
+
+.toast--error { background: var(--warn); color: var(--on-warn); }
+.toast--error button { color: var(--on-warn); }
+
+/* Пояснення, що не мусить бути завжди розгорнутим. */
+.info {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0 12px;
+  background: var(--surface);
+}
+.info > summary {
+  cursor: pointer; padding: 12px 0; font-size: 14px;
+  color: var(--accent); font-weight: 600; list-style: none;
+}
+.info > summary::-webkit-details-marker { display: none; }
+.info > summary::before { content: 'ⓘ '; }
+.info > p { margin: 0 0 12px; font-size: 14px; color: var(--muted); }
+
+.cat__name {
+  flex: 1; min-width: 0;
+  /* Поле мусить читатись як поле: прозора рамка не повідомляє,
+     що назву взагалі можна змінити. */
+  border: 1px solid var(--line);
+  background: var(--surface);
+  padding: 10px; font: inherit; color: inherit;
+  border-radius: 10px;
+}
+.cat__head .link {
+  flex: 0 0 auto;
+  min-height: 44px; min-width: 44px;
+  display: inline-flex; align-items: center; justify-content: center;
+  text-decoration: none;
+}
+.link--danger { color: var(--warn); }

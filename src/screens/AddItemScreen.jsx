@@ -36,6 +36,7 @@ export default function AddItemScreen() {
   // Щойно категорію обрали руками, підказка більше не втручається.
   const [categoryTouched, setCategoryTouched] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [next, setNext] = useState('home')
   const [error, setError] = useState(null)
 
   const set = (key, value) => setForm(f => ({ ...f, [key]: value }))
@@ -128,7 +129,7 @@ export default function AddItemScreen() {
         }
       }
 
-      navigate('/')
+      navigate(next === 'scan' ? '/scan' : '/', { replace: true })
     } catch (err) {
       setError(err.code === '23505'
         ? 'Цей штрихкод уже привʼязаний до іншого товару'

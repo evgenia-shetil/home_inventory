@@ -4,12 +4,14 @@ import { supabase } from '../lib/supabase.js'
 import { useInventory } from '../data/InventoryContext.jsx'
 import { planAutoSort } from '../domain/autosort.js'
 import { plural } from '../lib/plural.js'
+import Dialog from '../ui/Dialog.jsx'
 import { validatePassword, authErrorMessage } from '../domain/credentials.js'
 
 export default function SettingsScreen({ email }) {
   const { items, categories, updateItem } = useInventory()
   const [sorting, setSorting] = useState(false)
   const [sortResult, setSortResult] = useState(null)
+  const [confirmSort, setConfirmSort] = useState(false)
   const [password, setPassword] = useState('')
   const [status, setStatus] = useState('idle')
   const [message, setMessage] = useState(null)
@@ -43,6 +45,7 @@ export default function SettingsScreen({ email }) {
   const plan = planAutoSort(items, categories)
 
   async function autoSort() {
+    setConfirmSort(false)
     setSorting(true)
     setSortResult(null)
     let done = 0
@@ -74,12 +77,22 @@ export default function SettingsScreen({ email }) {
             можна розкласти автоматично: {plan.slice(0, 3).map(p => p.name).join(', ')}
             {plan.length > 3 ? ' та інші' : ''}.
           </p>
-          <button type="button" onClick={autoSort} disabled={sorting}>
+          <button type="button" onClick={() => setConfirmSort(true)} disabled={sorting}>
             {sorting ? 'Розкладаю…' : 'Розкласти по підкатегоріях'}
           </button>
         </>
       )}
       {sortResult && <p className="muted">{sortResult}</p>}
+
+      {confirmSort && (
+        <Dialog
+          title={`Розкласти ${plan.length} ${plural(plan.length, 'товар', 'товари', 'товарів')}?`}
+          description={`Застосунок сам обере підкатегорію за назвою. Те, що ти вже розклала руками, не зміниться. Скасувати одним рухом не вийде — категорію доведеться виправляти в картках окремо. Наприклад: ${plan.slice(0, 3).map(p => p.name).join(', ')}.`}
+          confirmLabel="Розкласти"
+          onConfirm={autoSort}
+          onCancel={() => setConfirmSort(false)}
+        />
+      )}
 
       <form onSubmit={changePassword} className="stack">
         <h2>Пароль</h2>

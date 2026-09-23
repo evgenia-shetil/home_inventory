@@ -8,7 +8,7 @@ import { plural } from '../lib/plural.js'
 import { Skeleton, Empty, ErrorState } from '../ui/States.jsx'
 
 export default function ShoppingScreen() {
-  const { items, categories, status, error, reload, adjust } = useInventory()
+  const { items, categories, status, error, reload, adjust, notify } = useInventory()
   const [busyId, setBusyId] = useState(null)
 
   if (status === 'loading') return <Skeleton count={3} />
@@ -28,8 +28,8 @@ export default function ShoppingScreen() {
     setBusyId(itemId)
     try {
       await adjust(itemId, 1, 'restock')
-    } catch {
-      // Помилку показує спільна плашка мережі; тут мовчимо навмисно.
+    } catch (err) {
+      notify(err.message, { tone: 'error' })
     } finally {
       setBusyId(null)
     }
@@ -43,6 +43,17 @@ export default function ShoppingScreen() {
         {cost.known > 0 && ` · орієнтовно ${formatPrice(cost.total)}, якщо взяти по одній`}
         {cost.unknown > 0 && ` (для ${cost.unknown} ціни ще немає)`}
       </p>
+
+      {cost.known > 0 && (
+        <details className="info">
+          <summary>Звідки ця сума</summary>
+          <p>
+            Береться найдешевша з відомих цін у кожній потребі, по одній штуці.
+            Ціни зберігаються з останньої покупки, тож у магазині вони можуть
+            відрізнятись. Це орієнтир, а не рахунок.
+          </p>
+        </details>
+      )}
 
       <ul className="shopping">
         {low.map(group => (

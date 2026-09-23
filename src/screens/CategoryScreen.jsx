@@ -11,7 +11,15 @@ export default function CategoryScreen() {
   const { items, categories, adjust } = useInventory()
 
   const category = categories.find(c => c.id === id)
-  if (!category) return <p className="muted">Категорію не знайдено.</p>
+  if (!category) {
+    return (
+      <div className="stack">
+        <h1>Категорію не знайдено</h1>
+        <p className="muted">Її могли видалити або перейменувати.</p>
+        <Link to="/"><button>До запасів</button></Link>
+      </div>
+    )
+  }
 
   const [group] = groupItems(items.filter(i => i.category_id === id), categories)
 

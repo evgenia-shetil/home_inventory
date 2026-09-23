@@ -3,12 +3,14 @@ import { useNavigate } from 'react-router-dom'
 import { useInventory } from '../data/InventoryContext.jsx'
 import { parseQty } from '../domain/quantity.js'
 import QtyInput from '../ui/QtyInput.jsx'
+import Dialog from '../ui/Dialog.jsx'
+import { IconTrash } from '../ui/icons.jsx'
 
 export default function CategoriesScreen() {
-  const { categories, items, createCategory, updateCategory, deleteCategory } = useInventory()
+  const { categories, items, createCategory, updateCategory, deleteCategory, notify } = useInventory()
   const navigate = useNavigate()
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState(null)
+  const [pendingDelete, setPendingDelete] = useState(null)
   const [newRoot, setNewRoot] = useState('')
   const [newChild, setNewChild] = useState({})
   const [drafts, setDrafts] = useState({})
@@ -21,32 +23,31 @@ export default function CategoriesScreen() {
     return items.filter(i => ids.includes(i.category_id)).length
   }
 
-  async function run(action) {
+  async function run(action, okMessage) {
     setBusy(true)
-    setError(null)
     try {
       await action()
+      if (okMessage) notify(okMessage)
     } catch (err) {
-      setError(err.code === '23505' ? 'Така назва вже є на цьому рівні' : err.message)
+      notify(err.code === '23505' ? 'Така назва вже є на цьому рівні' : err.message,
+             { tone: 'error' })
     } finally {
       setBusy(false)
     }
   }
 
-  async function handleRename(category) {
-    const name = prompt('Нова назва', category.name)
-    if (!name || name.trim() === category.name) return
-    await run(() => updateCategory(category.id, { name: name.trim() }))
+  // Назва редагується просто в рядку — так само, як у картці товару.
+  // Нативний prompt() виглядав чужим і не давав ні перевірки, ні скасування.
+  function handleRename(category, value) {
+    const name = value.trim()
+    if (!name || name === category.name) return
+    run(() => updateCategory(category.id, { name }), 'Назву збережено')
   }
 
-  async function handleDelete(category) {
-    const kids = childrenOf(category.id).length
-    const count = countItems(category)
-    const parts = [`Видалити «${category.name}»?`]
-    if (kids) parts.push(`Разом з нею зникнуть ${kids} підкатегорій.`)
-    if (count) parts.push(`${count} товарів лишаться без категорії, але не зникнуть.`)
-    if (!confirm(parts.join(' '))) return
-    await run(() => deleteCategory(category.id))
+  async function handleDelete() {
+    const category = pendingDelete
+    setPendingDelete(null)
+    await run(() => deleteCategory(category.id), `Видалено «${category.name}»`)
   }
 
   const thresholdValue = category =>
@@ -63,18 +64,28 @@ export default function CategoriesScreen() {
       const next = parseQty(raw)
       setDrafts(d => { const copy = { ...d }; delete copy[category.id]; return copy })
       if (next === Number(category.threshold)) return
-      updateCategory(category.id, { threshold: next }).catch(err => setError(err.message))
+      updateCategory(category.id, { threshold: next })
+        .then(() => notify(`Сигнал для «${category.name}»: ${next}`))
+        .catch(err => notify(err.message, { tone: 'error' }))
     }, 700)
   }
 
   const row = (category, isRoot) => (
     <div key={category.id} className={`cat__row${isRoot ? ' cat__row--root' : ''}`}>
       <div className="cat__head">
-        <span>{category.name}</span>
-        <span className="cat__actions">
-          <button className="link" disabled={busy} onClick={() => handleRename(category)}>назва</button>
-          <button className="link link--danger" disabled={busy} onClick={() => handleDelete(category)}>видалити</button>
-        </span>
+        <input
+          className="cat__name"
+          defaultValue={category.name}
+          aria-label={`Назва категорії ${category.name}`}
+          onBlur={e => handleRename(category, e.target.value)}
+        />
+        <button
+          className="link link--danger" disabled={busy}
+          onClick={() => setPendingDelete(category)}
+          aria-label={`Видалити категорію ${category.name}`}
+        >
+          <IconTrash />
+        </button>
       </div>
       {!isRoot && <div className="cat__threshold">
         <span className="muted">сигнал, коли всього лишиться</span>
@@ -91,13 +102,18 @@ export default function CategoriesScreen() {
     <div className="stack">
       <button className="back" onClick={() => navigate(-1)}>← назад</button>
       <h1>Категорії</h1>
-      <p className="muted">
-        Сигнал «закінчується» задається на підкатегорії й рахується на всі товари
-        в ній разом: якщо зубних щіток чотири різні, сигнал прийде, коли їх
-        сумарно лишиться стільки, скільки тут вказано. Головна категорія — лише
-        папка, власного сигналу вона не має.
-      </p>
-      {error && <p className="error">{error}</p>}
+      <details className="info">
+        <summary>Як працює сигнал</summary>
+        <p>
+          Сигнал задається на підкатегорії й рахується на всі товари в ній разом:
+          якщо зубних щіток чотири різні марки, сигнал прийде, коли їх сумарно
+          лишиться стільки, скільки тут вказано.
+        </p>
+        <p>
+          Головна категорія — лише папка, власного сигналу вона не має.
+          Назву можна змінити прямо в рядку.
+        </p>
+      </details>
 
       {roots.map(root => (
         <section key={root.id} className="cat">
@@ -139,6 +155,24 @@ export default function CategoriesScreen() {
         />
         <button type="submit" disabled={busy}>+</button>
       </form>
+      {pendingDelete && (
+        <Dialog
+          title={`Видалити «${pendingDelete.name}»?`}
+          description={[
+            childrenOf(pendingDelete.id).length
+              ? `Разом з нею зникнуть підкатегорії (${childrenOf(pendingDelete.id).length}).`
+              : null,
+            countItems(pendingDelete)
+              ? `Товари (${countItems(pendingDelete)}) не зникнуть, але лишаться без категорії.`
+              : null,
+            'Скасувати цю дію буде неможливо.',
+          ].filter(Boolean).join(' ')}
+          confirmLabel="Видалити"
+          tone="danger"
+          onConfirm={handleDelete}
+          onCancel={() => setPendingDelete(null)}
+        />
+      )}
     </div>
   )
 }

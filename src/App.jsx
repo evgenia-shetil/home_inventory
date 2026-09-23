@@ -12,7 +12,7 @@ import ScanScreen from './screens/ScanScreen.jsx'
 import CategoriesScreen from './screens/CategoriesScreen.jsx'
 import CategoryScreen from './screens/CategoryScreen.jsx'
 import BottomNav from './ui/BottomNav.jsx'
-import UndoToast from './ui/UndoToast.jsx'
+import Toast from './ui/Toast.jsx'
 import NetworkBanner from './ui/NetworkBanner.jsx'
 
 export default function App() {
@@ -44,7 +44,7 @@ export default function App() {
         </Routes>
       </main>
       <NetworkBanner />
-      <UndoToast />
+      <Toast />
       <BottomNav />
     </InventoryProvider>
   )

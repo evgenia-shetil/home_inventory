@@ -9,6 +9,8 @@ import { parseQty, correctionDelta } from '../domain/quantity.js'
 import QtyInput from '../ui/QtyInput.jsx'
 import PlaceInput from '../ui/PlaceInput.jsx'
 import CategorySelect from '../ui/CategorySelect.jsx'
+import Dialog from '../ui/Dialog.jsx'
+import { IconTrash } from '../ui/icons.jsx'
 
 const UNITS = ['шт', 'кг', 'г', 'л', 'мл', 'пачка', 'рулон']
 const KIND_LABEL = { consume: 'витрата', restock: 'поповнення', correction: 'виправлення' }
@@ -16,7 +18,7 @@ const KIND_LABEL = { consume: 'витрата', restock: 'поповнення',
 export default function ItemScreen() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { items, categories, adjust, deleteItem, uploadPhoto, updateItem } = useInventory()
+  const { items, categories, adjust, deleteItem, uploadPhoto, updateItem, notify } = useInventory()
   const item = items.find(i => i.id === id)
   const places = collectPlaces(items)
 
@@ -25,8 +27,7 @@ export default function ItemScreen() {
   const [restock, setRestock] = useState({ qty: '1', price: '', place: '' })
   const [recount, setRecount] = useState('')
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState(null)
-  const [note, setNote] = useState(null)
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
   const photoUrl = usePhotoUrl(item?.photo_path)
 
@@ -43,35 +44,36 @@ export default function ItemScreen() {
     // updated_at ставить сервер — його поява означає, що подія вже в базі.
   }, [id, item?.updated_at])
 
-  if (!item) return <p className="muted">Товар не знайдено.</p>
+  if (!item) {
+    return (
+      <div className="stack">
+        <h1>Товар не знайдено</h1>
+        <p className="muted">Схоже, його видалили або посилання застаріло.</p>
+        <Link to="/"><button>До запасів</button></Link>
+      </div>
+    )
+  }
 
   const current = categories.find(c => c.id === item.category_id)
   const rootId = current ? (current.parent_id ?? current.id) : ''
   const childId = current?.parent_id ? current.id : ''
 
-  const flash = message => {
-    setNote(message)
-    setTimeout(() => setNote(null), 2500)
-  }
-
   const save = (fields, message) =>
     updateItem(item.id, fields)
-      .then(() => { setError(null); if (message) flash(message) })
-      .catch(err => setError(err.message))
+      .then(() => { if (message) notify(message) })
+      .catch(err => notify(err.message, { tone: 'error' }))
 
   async function handleRestock(e) {
     e.preventDefault()
     setBusy(true)
-    setError(null)
     try {
       await adjust(item.id, parseQty(restock.qty), 'restock', {
         price: restock.price === '' ? null : Number(restock.price),
         place: restock.place.trim() || null,
       })
       setRestock({ qty: '1', price: '', place: '' })
-      flash('Поповнено')
     } catch (err) {
-      setError(err.message)
+      notify(err.message, { tone: 'error' })
     } finally {
       setBusy(false)
     }
@@ -82,24 +84,27 @@ export default function ItemScreen() {
   async function handleRecount(e) {
     e.preventDefault()
     const delta = correctionDelta(item.qty, recount)
-    if (delta === 0) return flash('Кількість не змінилась')
+    if (delta === 0) return notify('Кількість не змінилась')
 
     setBusy(true)
-    setError(null)
     try {
       await adjust(item.id, delta, 'correction')
-      flash(`Виправлено на ${delta > 0 ? '+' : ''}${delta}`)
     } catch (err) {
-      setError(err.message)
+      notify(err.message, { tone: 'error' })
     } finally {
       setBusy(false)
     }
   }
 
   async function handleDelete() {
-    if (!confirm(`Видалити «${item.name}»? Журнал операцій теж зникне.`)) return
-    await deleteItem(item.id)
-    navigate('/')
+    setConfirmDelete(false)
+    try {
+      await deleteItem(item.id)
+      notify(`Видалено «${item.name}»`)
+      navigate('/')
+    } catch (err) {
+      notify(err.message, { tone: 'error' })
+    }
   }
 
   return (
@@ -113,7 +118,9 @@ export default function ItemScreen() {
             <input type="file" accept="image/*" capture="environment" hidden
                    onChange={e => {
                      const f = e.target.files?.[0]
-                     if (f) uploadPhoto(item.id, f).catch(err => setError(err.message))
+                     if (f) uploadPhoto(item.id, f)
+                       .then(() => notify('Фото додано'))
+                       .catch(err => notify(err.message, { tone: 'error' }))
                    }} />
           </label>}
 
@@ -135,14 +142,12 @@ export default function ItemScreen() {
         <button
           className="consume"
           disabled={item.qty <= 0 || busy}
-          onClick={() => adjust(item.id, -1, 'consume').catch(err => setError(err.message))}
+          onClick={() => adjust(item.id, -1, 'consume')
+            .catch(err => notify(err.message, { tone: 'error' }))}
         >
           −1
         </button>
       </div>
-
-      {note && <p className="muted">{note}</p>}
-      {error && <p className="error">{error}</p>}
 
       <dl className="facts">
         <dt>Ціна за одиницю</dt><dd>{formatPrice(item.last_price)}</dd>
@@ -226,7 +231,9 @@ export default function ItemScreen() {
             </select>
           </label>
 
-          <button type="button" className="danger" onClick={handleDelete}>Видалити товар</button>
+          <button type="button" className="danger" onClick={() => setConfirmDelete(true)}>
+            <IconTrash /> Видалити товар
+          </button>
         </div>
       </details>
 
@@ -250,6 +257,16 @@ export default function ItemScreen() {
               </li>
             ))}
           </ul>}
+      {confirmDelete && (
+        <Dialog
+          title={`Видалити «${item.name}»?`}
+          description="Разом із товаром зникне весь його журнал операцій і привʼязаний штрихкод. Якщо річ просто скінчилась, краще лишити її з нулем — тоді історія та штрихкод збережуться."
+          confirmLabel="Видалити"
+          tone="danger"
+          onConfirm={handleDelete}
+          onCancel={() => setConfirmDelete(false)}
+        />
+      )}
     </div>
   )
 }

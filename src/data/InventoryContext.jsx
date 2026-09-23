@@ -17,7 +17,9 @@ export function InventoryProvider({ userId, children }) {
   const [categories, setCategories] = useState([])
   const [status, setStatus] = useState('loading')
   const [error, setError] = useState(null)
-  const [lastAction, setLastAction] = useState(null)
+  // Єдиний канал зворотного звʼязку: будь-яка дія повідомляє про себе тут,
+  // а ті, що можна відкотити, приносять із собою спосіб це зробити.
+  const [notice, setNotice] = useState(null)
   const [online, setOnline] = useState(navigator.onLine)
 
   useEffect(() => {
@@ -71,6 +73,12 @@ export function InventoryProvider({ userId, children }) {
     if (online && status === 'error') reload()
   }, [online, status, reload])
 
+  const notify = useCallback((text, options = {}) => {
+    setNotice({ text, tone: options.tone ?? 'info', undo: options.undo ?? null, at: Date.now() })
+  }, [])
+
+  const dismissNotice = useCallback(() => setNotice(null), [])
+
   const adjust = useCallback(async (itemId, delta, kind, extra = {}) => {
     const { items: optimistic, applied } = applyDelta(items, itemId, delta)
     setItems(optimistic)
@@ -93,16 +101,28 @@ export function InventoryProvider({ userId, children }) {
 
     // Сервер — джерело правди: підставляємо його рядок цілком.
     setItems(current => current.map(i => (i.id === itemId ? normalize(data) : i)))
-    if (kind === 'consume') setLastAction({ itemId, applied })
-    return data
+    return { row: data, applied }
   }, [items])
 
-  const undo = useCallback(async () => {
-    if (!lastAction) return
-    const { itemId, applied } = lastAction
-    setLastAction(null)
-    await adjust(itemId, -applied, 'correction')
-  }, [lastAction, adjust])
+  // Будь-яка зміна кількості відкочується тим самим способом — зворотною
+  // операцією з типом «виправлення». Раніше скасувати можна було лише
+  // витрату, хоча помилитись легко і в поповненні, і в перерахунку.
+  const adjustWithUndo = useCallback(async (itemId, delta, kind, extra = {}) => {
+    const { row, applied } = await adjust(itemId, delta, kind, extra)
+    const name = row?.name ?? ''
+    const label = kind === 'consume'
+      ? `Витрачено ${Math.abs(applied)} · ${name}`
+      : kind === 'restock'
+        ? `Додано ${applied} · ${name}`
+        : `Виправлено на ${applied > 0 ? '+' : ''}${applied} · ${name}`
+
+    if (applied !== 0) {
+      notify(label, { undo: () => adjust(itemId, -applied, 'correction') })
+    } else {
+      notify('Кількість не змінилась')
+    }
+    return row
+  }, [adjust, notify])
 
   const createItem = useCallback(async fields => {
     const { data, error } = await supabase
@@ -180,10 +200,10 @@ export function InventoryProvider({ userId, children }) {
   }, [reloadCategories, reload])
 
   const value = {
-    items, categories, status, error, online, lastAction,
-    reload, adjust, undo, createItem, updateItem, deleteItem, uploadPhoto,
+    items, categories, status, error, online, notice,
+    reload, adjust: adjustWithUndo, notify, dismissNotice,
+    createItem, updateItem, deleteItem, uploadPhoto,
     createCategory, updateCategory, deleteCategory,
-    clearLastAction: () => setLastAction(null),
   }
 
   return <InventoryContext.Provider value={value}>{children}</InventoryContext.Provider>

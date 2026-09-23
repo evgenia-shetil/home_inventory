@@ -11,7 +11,7 @@ import { Skeleton, Empty, ErrorState } from '../ui/States.jsx'
 import ScanIcon from '../ui/ScanIcon.jsx'
 
 export default function StockScreen() {
-  const { items, categories, status, error, reload, adjust } = useInventory()
+  const { items, categories, status, error, reload, adjust, notify } = useInventory()
   const [root, setRoot] = useState(null)
   const [query, setQuery] = useState('')
 
@@ -75,7 +75,7 @@ export default function StockScreen() {
                   key={item.id}
                   item={item}
                   low={false}
-                  onConsume={id => adjust(id, -1, 'consume').catch(() => {})}
+                  onConsume={id => adjust(id, -1, 'consume').catch(err => notify(err.message, { tone: 'error' }))}
                 />
               ))}
             </div>
