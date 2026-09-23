@@ -34,6 +34,14 @@ export default function StockScreen() {
   // тож показуємо плаский список збігів.
   const found = query.trim() ? searchItems(items, query) : null
 
+  // Спершу закінчується те, що вже відкрите, і лише потім береться запас.
+  const consumeOne = id => {
+    const target = items.find(i => i.id === id)
+    const bucket = Number(target?.in_use ?? 0) > 0 ? 'in_use' : 'stock'
+    return adjust(id, -1, 'consume', { bucket })
+      .catch(err => notify(err.message, { tone: 'error' }))
+  }
+
   const roots = categories.filter(c => !c.parent_id)
   const children = categories.filter(c => c.parent_id === root)
 
@@ -75,7 +83,7 @@ export default function StockScreen() {
                   key={item.id}
                   item={item}
                   low={false}
-                  onConsume={id => adjust(id, -1, 'consume').catch(err => notify(err.message, { tone: 'error' }))}
+                  onConsume={id => consumeOne(id)}
                 />
               ))}
             </div>

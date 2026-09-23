@@ -80,7 +80,11 @@ export function InventoryProvider({ userId, children }) {
   const dismissNotice = useCallback(() => setNotice(null), [])
 
   const adjust = useCallback(async (itemId, delta, kind, extra = {}) => {
-    const { items: optimistic, applied } = applyDelta(items, itemId, delta)
+    // Оптимістично міняємо лише запас у шафі: перенесення й списання
+    // з користування сервер порахує сам, а розбіжність тут коштувала б
+    // дорожче за мить очікування.
+    const optimisticDelta = (extra.bucket ?? 'stock') === 'stock' ? delta : 0
+    const { items: optimistic, applied: guessed } = applyDelta(items, itemId, optimisticDelta)
     setItems(optimistic)
 
     const { data, error } = await supabase.rpc('adjust_quantity', {
@@ -89,12 +93,13 @@ export function InventoryProvider({ userId, children }) {
       p_kind: kind,
       p_price: extra.price ?? null,
       p_place: extra.place ?? null,
+      p_bucket: extra.bucket ?? 'stock',
     })
 
     if (error) {
       // Відкат зворотною зміною, а не поверненням до знімка:
       // інакше паралельний тап, що встиг пройти, був би затертий.
-      setItems(current => applyDelta(current, itemId, -applied).items)
+      setItems(current => applyDelta(current, itemId, -guessed).items)
       setError(error.message)
       throw error
     }
@@ -108,18 +113,26 @@ export function InventoryProvider({ userId, children }) {
   // операцією з типом «виправлення». Раніше скасувати можна було лише
   // витрату, хоча помилитись легко і в поповненні, і в перерахунку.
   const adjustWithUndo = useCallback(async (itemId, delta, kind, extra = {}) => {
+    const bucket = extra.bucket ?? 'stock'
     const { row, applied } = await adjust(itemId, delta, kind, extra)
     const name = row?.name ?? ''
-    const label = kind === 'consume'
-      ? `Витрачено ${Math.abs(applied)} · ${name}`
-      : kind === 'restock'
-        ? `Додано ${applied} · ${name}`
-        : `Виправлено на ${applied > 0 ? '+' : ''}${applied} · ${name}`
+
+    const label =
+      kind === 'open' ? `Взято в користування · ${name}`
+      : kind === 'restock' ? `Додано ${applied} · ${name}`
+      : kind === 'correction' ? `Виправлено на ${applied > 0 ? '+' : ''}${applied} · ${name}`
+      : bucket === 'in_use' ? `Скінчилось · ${name}`
+      : `Витрачено ${Math.abs(applied)} · ${name}`
 
     if (applied !== 0) {
-      notify(label, { undo: () => adjust(itemId, -applied, 'correction') })
+      // Відкат тим самим лічильником: інакше перенесене в користування
+      // поверталось би не туди, звідки його взяли.
+      notify(label, {
+        undo: () => adjust(itemId, -applied,
+          kind === 'open' ? 'open' : 'correction', { bucket }),
+      })
     } else {
-      notify('Кількість не змінилась')
+      notify('Нічого не змінилось')
     }
     return row
   }, [adjust, notify])
@@ -215,6 +228,7 @@ function normalize(row) {
   return {
     ...row,
     qty: Number(row.qty),
+    in_use: Number(row.in_use ?? 0),
     threshold: Number(row.threshold),
     last_price: row.last_price === null ? null : Number(row.last_price),
   }

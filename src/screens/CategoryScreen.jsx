@@ -8,7 +8,7 @@ import { Empty } from '../ui/States.jsx'
 export default function CategoryScreen() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { items, categories, adjust } = useInventory()
+  const { items, categories, adjust, notify } = useInventory()
 
   const category = categories.find(c => c.id === id)
   if (!category) {
@@ -37,7 +37,9 @@ export default function CategoryScreen() {
 
       {group
         ? <p className={group.low ? 'error' : 'muted'}>
-            Всього {formatQty(group.total, group.unit)}, сигнал на {formatQty(group.threshold, group.unit)}
+            Всього {formatQty(group.total, group.unit)}
+            {group.inUse > 0 && `, з них ${formatQty(group.inUse, group.unit)} у користуванні`}
+            , сигнал на {formatQty(group.threshold, group.unit)}
           </p>
         : <Empty title="У цій категорії поки порожньо" />}
 
@@ -48,7 +50,12 @@ export default function CategoryScreen() {
               key={item.id}
               item={item}
               low={group.low}
-              onConsume={itemId => adjust(itemId, -1, 'consume').catch(() => {})}
+              onConsume={itemId => {
+                const target = items.find(i => i.id === itemId)
+                const bucket = Number(target?.in_use ?? 0) > 0 ? 'in_use' : 'stock'
+                return adjust(itemId, -1, 'consume', { bucket })
+                  .catch(err => notify(err.message, { tone: 'error' }))
+              }}
             />
           ))}
         </div>

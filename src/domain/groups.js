@@ -34,10 +34,17 @@ export function groupItems(items = [], categories = []) {
       categoryId: category?.id ?? null,
       unit: item.unit,
       total: 0,
+      inStock: 0,
+      inUse: 0,
       items: [],
     }
 
-    group.total += Number(item.qty)
+    // Поріг порівнюється з СУМОЮ: те, що вже у ванній, так само закриває
+    // потребу, як і те, що стоїть у шафі. Інакше застосунок вимагав би
+    // купувати запас до вже відкритої пляшки.
+    group.inStock += Number(item.qty)
+    group.inUse += Number(item.in_use ?? 0)
+    group.total += Number(item.qty) + Number(item.in_use ?? 0)
     group.items.push(item)
     groups.set(key, group)
   }

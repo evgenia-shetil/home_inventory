@@ -13,7 +13,10 @@ import Dialog from '../ui/Dialog.jsx'
 import { IconTrash } from '../ui/icons.jsx'
 
 const UNITS = ['шт', 'кг', 'г', 'л', 'мл', 'пачка', 'рулон']
-const KIND_LABEL = { consume: 'витрата', restock: 'поповнення', correction: 'виправлення' }
+const KIND_LABEL = {
+  consume: 'витрата', restock: 'поповнення',
+  correction: 'виправлення', open: 'взято в користування',
+}
 
 export default function ItemScreen() {
   const { id } = useParams()
@@ -54,6 +57,7 @@ export default function ItemScreen() {
     )
   }
 
+  const inUse = Number(item.in_use ?? 0)
   const current = categories.find(c => c.id === item.category_id)
   const rootId = current ? (current.parent_id ?? current.id) : ''
   const childId = current?.parent_id ? current.id : ''
@@ -138,16 +142,33 @@ export default function ItemScreen() {
       </label>
 
       <div className="qtyrow">
-        <p className="card__qty">{formatQty(item.qty, item.unit)}</p>
+        <p className="card__qty">{formatQty(item.qty + inUse, item.unit)}</p>
         <button
           className="consume"
-          disabled={item.qty <= 0 || busy}
-          onClick={() => adjust(item.id, -1, 'consume')
+          disabled={item.qty + inUse <= 0 || busy}
+          onClick={() => adjust(item.id, -1, 'consume',
+            { bucket: inUse > 0 ? 'in_use' : 'stock' })
             .catch(err => notify(err.message, { tone: 'error' }))}
         >
           −1
         </button>
       </div>
+
+      <div className="usebar">
+        <span>У шафі {formatQty(item.qty, item.unit)}</span>
+        <span>·</span>
+        <span>У користуванні {formatQty(inUse, item.unit)}</span>
+      </div>
+
+      {/* Перенесення з шафи у ванну не є витратою: сума не міняється,
+          тож сигнал «час купувати» не спрацює передчасно. */}
+      <button
+        type="button" className="ghost" disabled={item.qty <= 0 || busy}
+        onClick={() => adjust(item.id, 1, 'open', { bucket: 'move' })
+          .catch(err => notify(err.message, { tone: 'error' }))}
+      >
+        Взяти одну в користування
+      </button>
 
       <dl className="facts">
         <dt>Ціна за одиницю</dt><dd>{formatPrice(item.last_price)}</dd>
@@ -245,7 +266,8 @@ export default function ItemScreen() {
               <li key={e.id}>
                 <span>{Number(e.delta) > 0 ? `+${e.delta}` : e.delta}</span>
                 <span className="muted">
-                  {KIND_LABEL[e.kind]}
+                  {KIND_LABEL[e.kind] ?? e.kind}
+                  {e.bucket === 'in_use' && ' (з ванної)'}
                   {e.price !== null && e.price !== undefined && ` · ${formatPrice(e.price)}`}
                   {e.place && ` · ${e.place}`}
                 </span>

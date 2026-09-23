@@ -87,4 +87,47 @@ maybe('adjust_quantity', () => {
     const { error } = await db.from('items').update({ qty: 999 }).eq('id', itemId)
     expect(error).not.toBeNull()
   })
+
+  it('переносить одиницю з шафи в користування, не міняючи суми', async () => {
+    const { data: before } = await db.from('items').select('qty,in_use').eq('id', itemId).single()
+    const sumBefore = Number(before.qty) + Number(before.in_use)
+
+    const { data, error } = await db.rpc('adjust_quantity', {
+      p_item_id: itemId, p_delta: 1, p_kind: 'open', p_bucket: 'move',
+    })
+    expect(error).toBeNull()
+    expect(Number(data.qty)).toBe(Number(before.qty) - 1)
+    expect(Number(data.in_use)).toBe(Number(before.in_use) + 1)
+    expect(Number(data.qty) + Number(data.in_use)).toBe(sumBefore)
+  })
+
+  it('списує з користування окремо від шафи', async () => {
+    const { data: before } = await db.from('items').select('qty,in_use').eq('id', itemId).single()
+    const { data } = await db.rpc('adjust_quantity', {
+      p_item_id: itemId, p_delta: -1, p_kind: 'consume', p_bucket: 'in_use',
+    })
+    expect(Number(data.in_use)).toBe(Number(before.in_use) - 1)
+    expect(Number(data.qty)).toBe(Number(before.qty))
+  })
+
+  it('не переносить більше, ніж є в шафі', async () => {
+    const { data } = await db.rpc('adjust_quantity', {
+      p_item_id: itemId, p_delta: 999, p_kind: 'open', p_bucket: 'move',
+    })
+    expect(Number(data.qty)).toBe(0)
+
+    const { data: events } = await db
+      .from('events').select('delta,bucket').eq('item_id', itemId)
+      .order('created_at', { ascending: false }).limit(1)
+    // У журнал іде фактично перенесене, а не запитане
+    expect(Number(events[0].delta)).toBeLessThan(999)
+    expect(events[0].bucket).toBe('move')
+  })
+
+  it('відхиляє невідомий лічильник', async () => {
+    const { error } = await db.rpc('adjust_quantity', {
+      p_item_id: itemId, p_delta: 1, p_kind: 'restock', p_bucket: 'вигадка',
+    })
+    expect(error).not.toBeNull()
+  })
 })

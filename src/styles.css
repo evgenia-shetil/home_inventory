@@ -553,3 +553,9 @@ details.edit .stack { gap: 12px; }
   text-decoration: none;
 }
 .link--danger { color: var(--warn); }
+
+.card__use { margin: 1px 0 0; font-size: 11px; color: var(--muted); }
+.usebar {
+  display: flex; gap: 8px; align-items: center;
+  font-size: 14px; color: var(--muted);
+}

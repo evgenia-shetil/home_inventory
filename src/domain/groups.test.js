@@ -140,3 +140,41 @@ describe('змішані одиниці', () => {
     expect(groups[0].mixedUnits).toBe(false)
   })
 })
+
+describe('запас у шафі й у користуванні', () => {
+  const cats = [{ id: 'c', name: 'антижир', parent_id: 'r', threshold: 0 }]
+  const item = (qty, inUse) => ({ id: '1', name: 'Tiret', qty, in_use: inUse, category_id: 'c', unit: 'шт' })
+
+  it('відкрита пляшка закриває потребу так само, як запас у шафі', () => {
+    const [g] = groupItems([item(0, 1)], cats)
+    expect(g.total).toBe(1)
+    expect(g.low).toBe(false)
+  })
+
+  it('сигнал приходить, коли скінчилось і в шафі, і в користуванні', () => {
+    const [g] = groupItems([item(0, 0)], cats)
+    expect(g.total).toBe(0)
+    expect(g.low).toBe(true)
+  })
+
+  it('розділяє два лічильники для показу', () => {
+    const [g] = groupItems([item(2, 1)], cats)
+    expect(g.inStock).toBe(2)
+    expect(g.inUse).toBe(1)
+    expect(g.total).toBe(3)
+  })
+
+  // Зубні щітки: поріг 2 на суму — відкрита щітка теж рахується
+  it('поріг більший за нуль працює на сумі', () => {
+    const brushes = [{ id: 'b', name: 'щітки', parent_id: 'r', threshold: 2 }]
+    const make = (id, qty, inUse) => ({ id, name: id, qty, in_use: inUse, category_id: 'b', unit: 'шт' })
+    expect(groupItems([make('1', 3, 0), make('2', 0, 1)], brushes)[0].low).toBe(false)
+    expect(groupItems([make('1', 1, 0), make('2', 0, 1)], brushes)[0].low).toBe(true)
+  })
+
+  it('товари без нового поля рахуються як раніше', () => {
+    const [g] = groupItems([{ id: '1', name: 'старий', qty: 5, category_id: 'c', unit: 'шт' }], cats)
+    expect(g.total).toBe(5)
+    expect(g.inUse).toBe(0)
+  })
+})
