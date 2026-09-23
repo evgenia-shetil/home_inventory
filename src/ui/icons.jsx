@@ -34,3 +34,7 @@ export const IconEdit = () => (
     <path {...stroke} d="M4 20h4L19 9a2.1 2.1 0 0 0-3-3L5 17v3Z" />
   </svg>
 )
+
+export const IconPlus = () => (
+  <svg {...base} width="24" height="24"><path {...stroke} d="M12 5v14M5 12h14" /></svg>
+)

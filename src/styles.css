@@ -341,7 +341,6 @@ button:disabled { opacity: .5; }
 .fabs .fab { position: static; }
 .fab--small {
   width: 44px; height: 44px;
-  font-size: 22px;
   background: var(--surface);
   color: var(--text);
   border: 1px solid var(--line);

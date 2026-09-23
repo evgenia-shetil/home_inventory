@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useInventory } from '../data/InventoryContext.jsx'
+import { IconPlus } from './icons.jsx'
 
 const NEW = '__new__'
 
@@ -52,7 +53,7 @@ export default function CategorySelect({
               if (e.key === 'Escape') setTyping(false)
             }}
           />
-          <button type="button" onClick={save} disabled={busy}>+</button>
+          <button type="button" onClick={save} disabled={busy} aria-label="Створити категорію"><IconPlus /></button>
         </div>
         {error && <span className="error">{error}</span>}
         <button type="button" className="link" onClick={() => { setTyping(false); setError(null) }}>

@@ -6,7 +6,7 @@ import { formatQty } from '../lib/format.js'
 import ItemCard from '../ui/ItemCard.jsx'
 import { Empty } from '../ui/States.jsx'
 import CategorySettings from '../ui/CategorySettings.jsx'
-import { IconMore } from '../ui/icons.jsx'
+import { IconMore, IconPlus } from '../ui/icons.jsx'
 
 export default function CategoryScreen() {
   const { id } = useParams()
@@ -79,7 +79,17 @@ export default function CategoryScreen() {
         </div>
       )}
 
-      <Link to={`/add?category=${id}`} className="linkline">Додати товар у категорію</Link>
+      {/* Та сама плаваюча кнопка, що й на головному екрані: додавання
+          товару має виглядати однаково, хоч звідки його починати. */}
+      <div className="fabs">
+        <Link
+          to={`/add?category=${id}`}
+          className="fab"
+          aria-label={`Додати товар у категорію ${category.name}`}
+        >
+          <IconPlus />
+        </Link>
+      </div>
     </>
   )
 }

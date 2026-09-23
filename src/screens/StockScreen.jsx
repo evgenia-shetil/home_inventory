@@ -9,6 +9,7 @@ import { plural } from '../lib/plural.js'
 import CategoryStrip from '../ui/CategoryStrip.jsx'
 import { Skeleton, Empty, ErrorState } from '../ui/States.jsx'
 import ScanIcon from '../ui/ScanIcon.jsx'
+import { IconPlus } from '../ui/icons.jsx'
 
 const UNSORTED = '__unsorted__'
 
@@ -154,7 +155,7 @@ export default function StockScreen() {
       </ul>}
 
       <div className="fabs">
-        <Link to="/add" className="fab fab--small" aria-label="Додати товар вручну">+</Link>
+        <Link to="/add" className="fab fab--small" aria-label="Додати товар вручну"><IconPlus /></Link>
         <Link to="/scan" className="fab" aria-label="Сканувати штрихкод"><ScanIcon /></Link>
       </div>
     </>

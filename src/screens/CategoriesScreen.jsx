@@ -4,7 +4,7 @@ import { useInventory } from '../data/InventoryContext.jsx'
 import { parseQty } from '../domain/quantity.js'
 import QtyInput from '../ui/QtyInput.jsx'
 import Dialog from '../ui/Dialog.jsx'
-import { IconTrash } from '../ui/icons.jsx'
+import { IconTrash, IconPlus } from '../ui/icons.jsx'
 
 export default function CategoriesScreen() {
   const { categories, items, createCategory, updateCategory, deleteCategory, notify } = useInventory()
@@ -171,7 +171,7 @@ export default function CategoriesScreen() {
               placeholder={`Підкатегорія в «${root.name}»`}
               onChange={e => setNewChild(v => ({ ...v, [root.id]: e.target.value }))}
             />
-            <button type="submit" disabled={busy}>+</button>
+            <button type="submit" disabled={busy} aria-label="Додати"><IconPlus /></button>
           </form>
         </section>
       ))}
@@ -189,7 +189,7 @@ export default function CategoriesScreen() {
           placeholder="Нова категорія"
           onChange={e => setNewRoot(e.target.value)}
         />
-        <button type="submit" disabled={busy}>+</button>
+        <button type="submit" disabled={busy} aria-label="Додати"><IconPlus /></button>
       </form>
       {pendingDelete && (
         <Dialog
