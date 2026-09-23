@@ -22,7 +22,12 @@ export function groupItems(items = [], categories = []) {
     const name = category
       ? (isUnsortedRoot ? `${category.name} · без підкатегорії` : category.name)
       : item.name
-    const threshold = Number(category ? category.threshold : item.threshold)
+    // Поріг — властивість ПІДКАТЕГОРІЇ: саме вона описує потребу.
+    // Головна категорія лише папка, а нерозкладені товари й ті, що поза
+    // категоріями, працюють на власному запасному порозі.
+    const threshold = Number(
+      category?.parent_id ? category.threshold : item.threshold
+    )
 
     const group = groups.get(key) ?? {
       key, name, threshold,

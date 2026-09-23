@@ -68,7 +68,7 @@ export default function CategoriesScreen() {
           <button className="link" disabled={busy} onClick={() => handleDelete(category)}>видалити</button>
         </span>
       </div>
-      <div className="cat__threshold">
+      {!isRoot && <div className="cat__threshold">
         <span className="muted">сигнал, коли всього лишиться</span>
         <QtyInput
           value={thresholdValue(category)}
@@ -81,7 +81,7 @@ export default function CategoriesScreen() {
         <button className="link" disabled={busy} onClick={() => saveThreshold(category)}>
           зберегти поріг
         </button>
-      </div>
+      </div>}
     </div>
   )
 
@@ -90,8 +90,10 @@ export default function CategoriesScreen() {
       <button className="back" onClick={() => navigate(-1)}>← назад</button>
       <h1>Категорії</h1>
       <p className="muted">
-        Поріг рахується на всю категорію разом: якщо в «зубних щітках» чотири марки,
-        сигнал прийде, коли їх сумарно лишиться стільки, скільки тут вказано.
+        Сигнал «закінчується» задається на підкатегорії й рахується на всі товари
+        в ній разом: якщо зубних щіток чотири різні, сигнал прийде, коли їх
+        сумарно лишиться стільки, скільки тут вказано. Головна категорія — лише
+        папка, власного сигналу вона не має.
       </p>
       {error && <p className="error">{error}</p>}
 

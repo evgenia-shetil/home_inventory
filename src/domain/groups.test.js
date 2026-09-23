@@ -101,3 +101,22 @@ describe('товари просто в головній категорії', () 
     expect(groups[0].name).toBe('інше')
   })
 })
+
+describe('поріг лише на підкатегорії', () => {
+  const tree = [
+    { id: 'r', name: 'обличчя', parent_id: null, threshold: 99 },
+    { id: 'c', name: 'зубна щітка', parent_id: 'r', threshold: 3 },
+  ]
+
+  it('підкатегорія задає поріг групи', () => {
+    const groups = groupItems(
+      [{ id: '1', name: 'Jordan', qty: 5, category_id: 'c', unit: 'шт', threshold: 1 }], tree)
+    expect(groups[0].threshold).toBe(3)
+  })
+
+  it('головна категорія свого порога не має — працює запасний з товару', () => {
+    const groups = groupItems(
+      [{ id: '1', name: 'щось', qty: 5, category_id: 'r', unit: 'шт', threshold: 2 }], tree)
+    expect(groups[0].threshold).toBe(2)
+  })
+})
