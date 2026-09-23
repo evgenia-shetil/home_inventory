@@ -83,7 +83,9 @@ export function InventoryProvider({ userId, children }) {
     // Оптимістично міняємо лише запас у шафі: перенесення й списання
     // з користування сервер порахує сам, а розбіжність тут коштувала б
     // дорожче за мить очікування.
-    const optimisticDelta = (extra.bucket ?? 'stock') === 'stock' ? delta : 0
+    const bucket = extra.bucket ?? 'stock'
+    const before = items.find(i => i.id === itemId)
+    const optimisticDelta = bucket === 'stock' ? delta : 0
     const { items: optimistic, applied: guessed } = applyDelta(items, itemId, optimisticDelta)
     setItems(optimistic)
 
@@ -93,7 +95,7 @@ export function InventoryProvider({ userId, children }) {
       p_kind: kind,
       p_price: extra.price ?? null,
       p_place: extra.place ?? null,
-      p_bucket: extra.bucket ?? 'stock',
+      p_bucket: bucket,
     })
 
     if (error) {
@@ -106,6 +108,13 @@ export function InventoryProvider({ userId, children }) {
 
     // Сервер — джерело правди: підставляємо його рядок цілком.
     setItems(current => current.map(i => (i.id === itemId ? normalize(data) : i)))
+
+    // Фактична зміна рахується з відповіді сервера, а не з того, що
+    // просили: він обмежує нулем і не переносить більше, ніж є в шафі.
+    const applied = bucket === 'stock'
+      ? Number(data.qty) - Number(before?.qty ?? 0)
+      : Number(data.in_use) - Number(before?.in_use ?? 0)
+
     return { row: data, applied }
   }, [items])
 

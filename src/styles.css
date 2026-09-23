@@ -604,3 +604,7 @@ details.edit .stack { gap: 12px; }
 .toast--success button { color: var(--on-success); }
 
 .recent, .recent__title { display: none; }
+
+/* Службова вкладка відрізняється від категорій, щоб її не читали
+   як ще одну категорію. */
+.chip--extra { border-style: dashed; }

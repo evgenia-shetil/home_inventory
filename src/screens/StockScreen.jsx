@@ -10,6 +10,8 @@ import CategoryStrip from '../ui/CategoryStrip.jsx'
 import { Skeleton, Empty, ErrorState } from '../ui/States.jsx'
 import ScanIcon from '../ui/ScanIcon.jsx'
 
+const UNSORTED = '__unsorted__'
+
 export default function StockScreen() {
   const { items, categories, status, error, reload, adjust, notify } = useInventory()
   const [root, setRoot] = useState(null)
@@ -44,6 +46,14 @@ export default function StockScreen() {
 
 
   const roots = categories.filter(c => !c.parent_id)
+
+  // Нерозкладене: товар або взагалі без категорії, або причеплений
+  // до головної, але без підкатегорії.
+  const unsorted = items.filter(item => {
+    if (!item.category_id) return true
+    const c = categories.find(x => x.id === item.category_id)
+    return Boolean(c) && !c.parent_id
+  })
   const children = categories.filter(c => c.parent_id === root)
 
   const inBranch = item => {
@@ -92,9 +102,39 @@ export default function StockScreen() {
       )}
 
 
-      {!found && <CategoryStrip categories={roots} selected={root} onSelect={setRoot} />}
+      {!found && (
+        <CategoryStrip
+          categories={roots}
+          selected={root}
+          onSelect={setRoot}
+          extra={unsorted.length > 0
+            ? { id: UNSORTED, name: `без підкатегорії · ${unsorted.length}` }
+            : null}
+        />
+      )}
 
-      {!found && <ul className="groups">
+      {!found && root === UNSORTED && (
+        unsorted.length > 0
+          ? <>
+              <p className="muted">
+                Товари без категорії або без підкатегорії. Категорія
+                змінюється в картці товару.
+              </p>
+              <div className="grid">
+                {unsorted.map(item => (
+                  <ItemCard
+                    key={item.id}
+                    item={item}
+                    low={false}
+                    onConsume={id => consumeOne(id)}
+                  />
+                ))}
+              </div>
+            </>
+          : <Empty title="Усе розкладено" />
+      )}
+
+      {!found && root !== UNSORTED && <ul className="groups">
         {groups.map(group => (
           <li key={group.key}>
             <Link
