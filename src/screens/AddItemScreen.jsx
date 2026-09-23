@@ -83,7 +83,10 @@ export default function AddItemScreen() {
 
       navigate('/')
     } catch (err) {
-      setError(err.message)
+      // 23505 — порушення унікальності: такий штрихкод уже за кимось закріплений.
+      setError(err.code === '23505'
+        ? 'Цей штрихкод уже привʼязаний до іншого товару'
+        : err.message)
       setBusy(false)
     }
   }
