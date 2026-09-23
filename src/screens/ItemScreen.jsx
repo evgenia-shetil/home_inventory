@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase.js'
 import { usePhotoUrl } from '../lib/photos.js'
 import { useInventory } from '../data/InventoryContext.jsx'
@@ -74,13 +74,28 @@ export default function ItemScreen() {
           </label>}
 
       <h1>{item.name}</h1>
-      <p className="card__qty">{formatQty(item.qty, item.unit)}</p>
+      <div className="qtyrow">
+        <p className="card__qty">{formatQty(item.qty, item.unit)}</p>
+        <button
+          className="consume"
+          disabled={item.qty <= 0 || busy}
+          onClick={() => adjust(item.id, -1, 'consume').catch(err => setError(err.message))}
+        >
+          −1
+        </button>
+      </div>
 
       <dl className="facts">
         <dt>Ціна за одиницю</dt><dd>{formatPrice(item.last_price)}</dd>
         <dt>Вартість залишку</dt><dd>{formatTotal(item.qty, item.last_price)}</dd>
         <dt>Де куплено</dt><dd>{item.last_place ?? '—'}</dd>
         <dt>Поріг</dt><dd>{formatQty(item.threshold, item.unit)}</dd>
+        <dt>Штрихкод</dt>
+        <dd>
+          {item.barcode
+            ? item.barcode
+            : <Link to={`/scan?attach=${item.id}`} className="linkline">привʼязати</Link>}
+        </dd>
       </dl>
 
       <form onSubmit={handleRestock} className="stack">

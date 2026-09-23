@@ -1,22 +1,58 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { useInventory } from '../data/InventoryContext.jsx'
+import { lookupProduct } from '../domain/lookup.js'
+import { normalizeBarcode } from '../domain/barcode.js'
 
 const UNITS = ['шт', 'кг', 'г', 'л', 'мл', 'пачка', 'рулон']
 
 export default function AddItemScreen() {
   const { categories, createItem, uploadPhoto } = useInventory()
   const navigate = useNavigate()
+  const [params] = useSearchParams()
+  const barcode = normalizeBarcode(params.get('barcode'))
 
   const [form, setForm] = useState({
     name: '', qty: '1', unit: 'шт', threshold: '1',
     category_id: '', last_price: '', last_place: '',
   })
   const [file, setFile] = useState(null)
+  const [lookup, setLookup] = useState(barcode ? 'searching' : 'idle')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
 
   const set = (key, value) => setForm(f => ({ ...f, [key]: value }))
+
+  // Пошук у відкритих базах за штрихкодом. Знахідка лише ПІДСТАВЛЯЄ значення —
+  // усе лишається редагованим, бо назви там часто задовгі або чужою мовою.
+  useEffect(() => {
+    if (!barcode) return
+    let cancelled = false
+
+    ;(async () => {
+      const found = await lookupProduct(barcode)
+      if (cancelled) return
+
+      if (!found) {
+        setLookup('missing')
+        return
+      }
+
+      setForm(f => ({ ...f, name: f.name || found.name }))
+      setLookup('found')
+
+      if (found.imageUrl) {
+        try {
+          const blob = await (await fetch(found.imageUrl)).blob()
+          if (!cancelled) setFile(new File([blob], 'photo.jpg', { type: blob.type }))
+        } catch {
+          // Фото не критичне: назву ми вже підставили, решту додасть вручну.
+        }
+      }
+    })()
+
+    return () => { cancelled = true }
+  }, [barcode])
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -32,6 +68,7 @@ export default function AddItemScreen() {
         category_id: form.category_id || null,
         last_price: form.last_price === '' ? null : Number(form.last_price),
         last_place: form.last_place.trim() || null,
+        barcode: barcode || null,
       })
 
       // Фото вантажиться окремо: невдача тут не має скасовувати
@@ -55,14 +92,26 @@ export default function AddItemScreen() {
     <form onSubmit={handleSubmit} className="stack">
       <h1>Новий товар</h1>
 
+      {barcode && (
+        <p className="muted">
+          Штрихкод {barcode}
+          {lookup === 'searching' && ' · шукаю в каталогах…'}
+          {lookup === 'found' && ' · знайдено, перевір назву'}
+          {lookup === 'missing' && ' · у каталогах немає, впиши назву сама'}
+        </p>
+      )}
+
+      {!barcode && (
+        <Link to="/scan" className="linkline">Сканувати штрихкод замість ручного вводу</Link>
+      )}
+
       <label className="field">
         Фото
         <input
-          type="file"
-          accept="image/*"
-          capture="environment"
+          type="file" accept="image/*" capture="environment"
           onChange={e => setFile(e.target.files?.[0] ?? null)}
         />
+        {file && <span className="muted">Обрано: {file.name}</span>}
       </label>
 
       <label className="field">

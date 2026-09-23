@@ -191,3 +191,51 @@ button:disabled { opacity: .5; }
   font-weight: 500;
   text-decoration: underline;
 }
+
+/* Сканер */
+.scanner { display: flex; flex-direction: column; gap: 12px; position: relative; }
+.scanner__video {
+  width: 100%;
+  aspect-ratio: 3/4;
+  object-fit: cover;
+  border-radius: var(--radius);
+  background: #000;
+}
+/* Рамка-прицільник: підказує, куди вести камеру. */
+.scanner__frame {
+  position: absolute;
+  left: 12%; right: 12%; top: 30%;
+  height: 22%;
+  border: 2px solid rgba(255,255,255,.9);
+  border-radius: 8px;
+  box-shadow: 0 0 0 100vmax rgba(0,0,0,.25);
+  pointer-events: none;
+}
+
+.fabs {
+  position: fixed;
+  right: 16px;
+  bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 16px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.fabs .fab { position: static; }
+.fab--small {
+  width: 44px; height: 44px;
+  font-size: 22px;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--line);
+}
+
+.qtyrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.consume {
+  width: auto;
+  padding: 12px 28px;
+  font-size: 20px;
+  background: var(--text);
+}
+
+.linkline { color: var(--accent); text-decoration: underline; }

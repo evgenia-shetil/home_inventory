@@ -17,7 +17,10 @@ export default function StockScreen() {
     return (
       <Empty
         title="Поки що порожньо"
-        action={<Link to="/add"><button>Додати перший товар</button></Link>}
+        action={<>
+          <Link to="/scan"><button>Сканувати штрихкод</button></Link>
+          <Link to="/add"><button className="ghost">Додати вручну</button></Link>
+        </>}
       />
     )
   }
@@ -38,7 +41,10 @@ export default function StockScreen() {
           />
         ))}
       </div>
-      <Link to="/add" className="fab" aria-label="Додати товар">+</Link>
+      <div className="fabs">
+        <Link to="/add" className="fab fab--small" aria-label="Додати товар вручну">+</Link>
+        <Link to="/scan" className="fab" aria-label="Сканувати штрихкод">⌷</Link>
+      </div>
     </>
   )
 }
