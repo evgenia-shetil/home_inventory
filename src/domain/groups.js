@@ -11,7 +11,17 @@ export function groupItems(items = [], categories = []) {
     // Товар поза категоріями лишається групою сам по собі — тоді працює
     // його власний поріг, як і раніше.
     const key = category ? `c:${category.id}` : `i:${item.id}`
-    const name = category ? category.name : item.name
+
+    // Товар, причеплений просто до головної категорії, утворює групу з тим
+    // самим іменем — і в переліку це виглядає як підкатегорія, названа так
+    // само, як категорія. Позначаємо явно, що це нерозкладений залишок.
+    const isUnsortedRoot =
+      category && !category.parent_id &&
+      categories.some(c => c.parent_id === category.id)
+
+    const name = category
+      ? (isUnsortedRoot ? `${category.name} · без підкатегорії` : category.name)
+      : item.name
     const threshold = Number(category ? category.threshold : item.threshold)
 
     const group = groups.get(key) ?? {

@@ -87,7 +87,7 @@ export default function CategoriesScreen() {
 
   return (
     <div className="stack">
-      <button className="ghost" onClick={() => navigate(-1)}>← Назад</button>
+      <button className="back" onClick={() => navigate(-1)}>← назад</button>
       <h1>Категорії</h1>
       <p className="muted">
         Поріг рахується на всю категорію разом: якщо в «зубних щітках» чотири марки,

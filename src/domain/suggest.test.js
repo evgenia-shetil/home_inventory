@@ -52,3 +52,18 @@ describe('suggestCategory', () => {
     expect(suggestCategory('шампунь', trimmed)).toEqual({ rootId: 'r1', childId: null })
   })
 })
+
+describe('догляд за ротом', () => {
+  const oral = [
+    { id: 'f', name: 'обличчя', parent_id: null },
+    { id: 'p', name: 'зубна паста', parent_id: 'f' },
+    { id: 'b', name: 'зубна щітка', parent_id: 'f' },
+  ]
+
+  it('паста і щітка належать до обличчя, а не до тіла', () => {
+    expect(suggestCategory('Curaprox Enzycal зубна паста', oral))
+      .toEqual({ rootId: 'f', childId: 'p' })
+    expect(suggestCategory('Jordan зубна щітка Medium', oral))
+      .toEqual({ rootId: 'f', childId: 'b' })
+  })
+})

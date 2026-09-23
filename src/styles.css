@@ -339,3 +339,18 @@ button:disabled { opacity: .5; }
 .newcat__row input { flex: 1; }
 .newcat__row button { width: 48px; flex: 0 0 48px; font-size: 22px; }
 .newcat .link { align-self: flex-start; font-size: 13px; }
+
+/* Кнопка «назад» — маленька і непомітна: вона службова,
+   а не головна дія екрана. */
+.back {
+  width: auto;
+  align-self: flex-start;
+  min-height: 0;
+  padding: 6px 12px 6px 8px;
+  font-size: 14px;
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  margin-bottom: 4px;
+}

@@ -54,7 +54,7 @@ export default function StockScreen() {
               <span className="group__meta">
                 <b>{formatQty(group.total, group.unit)}</b>
                 {group.categoryId && group.items.length > 1 && (
-                  <span className="muted"> · {group.items.length} {plural(group.items.length, 'марка', 'марки', 'марок')}</span>
+                  <span className="muted"> · {group.items.length} {plural(group.items.length, 'товар', 'товари', 'товарів')}</span>
                 )}
               </span>
             </Link>

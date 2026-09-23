@@ -74,7 +74,7 @@ export default function ItemScreen() {
 
   return (
     <div className="stack">
-      <button className="ghost" onClick={() => navigate(-1)}>← Назад</button>
+      <button className="back" onClick={() => navigate(-1)}>← назад</button>
 
       {photoUrl
         ? <img src={photoUrl} alt="" className="hero" />

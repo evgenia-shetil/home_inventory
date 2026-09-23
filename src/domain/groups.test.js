@@ -48,9 +48,9 @@ describe('groupItems', () => {
     expect(groups[0].low).toBe(true)
   })
 
-  it('товар, причеплений прямо до головної категорії, групується по ній', () => {
+  it('товар прямо в головній категорії позначається як нерозкладений', () => {
     const groups = groupItems([item('1', 'a', 1, 'r1')], cats)
-    expect(groups[0].name).toBe('тіло')
+    expect(groups[0].name).toBe('тіло · без підкатегорії')
   })
 
   it('сортує за терміновістю: найближче до порога попереду', () => {
@@ -79,5 +79,25 @@ describe('порядок усередині групи', () => {
       { id: '2', name: 'Colgate', qty: 1, category_id: 'c1', unit: 'шт' },
     ], cats)
     expect(groups[0].items.map(i => i.name)).toEqual(['Colgate', 'Oral-B'])
+  })
+})
+
+describe('товари просто в головній категорії', () => {
+  const tree = [
+    { id: 'r', name: 'обличчя', parent_id: null, threshold: 1 },
+    { id: 'c', name: 'зубна щітка', parent_id: 'r', threshold: 1 },
+  ]
+
+  it('позначаються як нерозкладені, щоб не плутати з підкатегорією', () => {
+    const groups = groupItems(
+      [{ id: '1', name: 'Jordan', qty: 1, category_id: 'r', unit: 'шт' }], tree)
+    expect(groups[0].name).toBe('обличчя · без підкатегорії')
+  })
+
+  it('без підкатегорій позначка не потрібна', () => {
+    const flat = [{ id: 'r', name: 'інше', parent_id: null, threshold: 1 }]
+    const groups = groupItems(
+      [{ id: '1', name: 'щось', qty: 1, category_id: 'r', unit: 'шт' }], flat)
+    expect(groups[0].name).toBe('інше')
   })
 })

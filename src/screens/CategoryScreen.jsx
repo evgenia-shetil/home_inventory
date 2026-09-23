@@ -17,7 +17,7 @@ export default function CategoryScreen() {
 
   return (
     <>
-      <button className="ghost" onClick={() => navigate(-1)}>← Назад</button>
+      <button className="back" onClick={() => navigate(-1)}>← назад</button>
       <h1>{category.name}</h1>
 
       {group
@@ -39,7 +39,7 @@ export default function CategoryScreen() {
         </div>
       )}
 
-      <Link to={`/add?category=${id}`} className="linkline">Додати марку в цю категорію</Link>
+      <Link to={`/add?category=${id}`} className="linkline">Додати товар у цю категорію</Link>
     </>
   )
 }
