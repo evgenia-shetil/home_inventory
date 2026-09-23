@@ -22,10 +22,6 @@ export default function App() {
     return () => sub.subscription.unsubscribe()
   }, [])
 
-  useEffect(() => {
-    if (session) supabase.rpc('ensure_default_categories')
-  }, [session?.user?.id])
-
   if (session === undefined) return <main className="screen center">Завантаження…</main>
   if (!session) return <LoginScreen />
 

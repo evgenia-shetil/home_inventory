@@ -51,7 +51,20 @@ export function InventoryProvider({ userId, children }) {
     setStatus('ready')
   }, [])
 
-  useEffect(() => { reload() }, [reload, userId])
+  // Категорії за замовчуванням створюються ПЕРЕД читанням, а не паралельно:
+  // інакше при першому вході список прочитається раніше, ніж заповниться.
+  // Невдача не блокує застосунок — головна дія «−1» від категорій не залежить.
+  useEffect(() => {
+    let cancelled = false
+
+    ;(async () => {
+      const { error } = await supabase.rpc('ensure_default_categories')
+      if (error) console.warn('ensure_default_categories:', error.message)
+      if (!cancelled) await reload()
+    })()
+
+    return () => { cancelled = true }
+  }, [reload, userId])
 
   // Автоматична повторна спроба, коли мережа повернулась.
   useEffect(() => {
