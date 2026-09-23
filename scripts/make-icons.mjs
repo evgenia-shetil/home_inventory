@@ -1,0 +1,17 @@
+// Проста іконка без зовнішніх ресурсів: SVG -> PNG через sharp.
+import { writeFileSync } from 'node:fs'
+import sharp from 'sharp'
+
+const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512">
+  <rect width="512" height="512" rx="112" fill="#2f6d5b"/>
+  <rect x="136" y="150" width="240" height="228" rx="24" fill="#faf9f7"/>
+  <rect x="136" y="150" width="240" height="56" rx="24" fill="#1c1b1a"/>
+  <rect x="176" y="250" width="160" height="20" rx="10" fill="#2f6d5b"/>
+  <rect x="176" y="300" width="104" height="20" rx="10" fill="#c9c3bc"/>
+</svg>`
+
+writeFileSync('public/icon.svg', svg)
+for (const size of [192, 512]) {
+  await sharp(Buffer.from(svg)).resize(size, size).png().toFile(`public/icon-${size}.png`)
+}
+console.log('іконки готові')
