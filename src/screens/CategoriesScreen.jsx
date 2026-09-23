@@ -52,8 +52,8 @@ export default function CategoriesScreen() {
   const thresholdValue = category =>
     drafts[category.id] ?? String(category.threshold ?? 1)
 
-  const saveThreshold = category => {
-    const next = parseQty(thresholdValue(category))
+  const saveThreshold = (category, raw) => {
+    const next = parseQty(raw ?? thresholdValue(category))
     setDrafts(d => { const copy = { ...d }; delete copy[category.id]; return copy })
     if (next === Number(category.threshold)) return
     run(() => updateCategory(category.id, { threshold: next }))
@@ -72,15 +72,9 @@ export default function CategoriesScreen() {
         <span className="muted">сигнал, коли всього лишиться</span>
         <QtyInput
           value={thresholdValue(category)}
-          onChange={v => {
-            setDrafts(d => ({ ...d, [category.id]: v }))
-            // Стрілки міняють значення одразу, тож зберігаємо без очікування blur.
-            if (v !== thresholdValue(category)) return
-          }}
+          onChange={v => setDrafts(d => ({ ...d, [category.id]: v }))}
+          onCommit={v => saveThreshold(category, v)}
         />
-        <button className="link" disabled={busy} onClick={() => saveThreshold(category)}>
-          зберегти поріг
-        </button>
       </div>}
     </div>
   )

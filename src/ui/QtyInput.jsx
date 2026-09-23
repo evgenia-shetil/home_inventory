@@ -2,8 +2,14 @@ import { stepQty } from '../domain/quantity.js'
 
 // Поле кількості зі стрілками. На телефоні влучити в кнопку легше,
 // ніж у вузьке текстове поле й дрібні нативні стрілки браузера.
-export default function QtyInput({ value, onChange, min = 0, unit }) {
-  const step = delta => onChange(stepQty(value, delta))
+// onCommit — необовʼязковий: спрацьовує, коли значення вже остаточне
+// (натиснута стрілка або поле втратило фокус), а не на кожну літеру.
+export default function QtyInput({ value, onChange, onCommit, min = 0, unit }) {
+  const step = delta => {
+    const next = stepQty(value, delta)
+    onChange(next)
+    onCommit?.(next)
+  }
 
   return (
     <div className="qtyinput">
@@ -20,6 +26,7 @@ export default function QtyInput({ value, onChange, min = 0, unit }) {
         className="qtyinput__field"
         type="text" inputMode="decimal" value={value}
         onChange={e => onChange(e.target.value)}
+        onBlur={e => onCommit?.(e.target.value)}
         aria-label="Кількість"
       />
 
