@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { useInventory } from '../data/InventoryContext.jsx'
 import { lookupProduct } from '../domain/lookup.js'
@@ -42,10 +42,16 @@ export default function AddItemScreen() {
   const set = (key, value) => setForm(f => ({ ...f, [key]: value }))
 
   // Прийшли з екрана категорії — вона вже обрана, і підказка не втручається.
+  // Застосовується РІВНО ОДИН РАЗ: масив categories отримує нову
+  // ідентичність при кожному перезавантаженні списку, і без цього
+  // прапорця ефект скидав щойно обрану вручну категорію.
+  const presetApplied = useRef(false)
   useEffect(() => {
-    if (!presetCategory || !categories.length) return
+    if (presetApplied.current || !presetCategory || !categories.length) return
     const target = categories.find(c => c.id === presetCategory)
     if (!target) return
+
+    presetApplied.current = true
     setCategoryTouched(true)
     setForm(f => ({
       ...f,

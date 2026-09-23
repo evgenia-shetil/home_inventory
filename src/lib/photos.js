@@ -20,7 +20,14 @@ export async function getPhotoUrl(path) {
 
   if (error) return null
 
-  cache.set(path, { url: data.signedUrl, expiresAt: Date.now() + TTL_SECONDS * 1000 })
+  // Протерміноване прибираємо при кожному записі: інакше запис на кожне
+  // фото лишався б у памʼяті до перезавантаження сторінки.
+  const now = Date.now()
+  for (const [key, entry] of cache) {
+    if (entry.expiresAt <= now) cache.delete(key)
+  }
+
+  cache.set(path, { url: data.signedUrl, expiresAt: now + TTL_SECONDS * 1000 })
   return data.signedUrl
 }
 

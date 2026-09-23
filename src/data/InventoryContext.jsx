@@ -1,4 +1,4 @@
-import { createContext, useContext, useCallback, useEffect, useState } from 'react'
+import { createContext, useContext, useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { applyDelta } from '../domain/optimistic.js'
 import { compressImage } from '../domain/image.js'
@@ -68,9 +68,14 @@ export function InventoryProvider({ userId, children }) {
     return () => { cancelled = true }
   }, [reload, userId])
 
-  // Автоматична повторна спроба, коли мережа повернулась.
+  // Повторюємо лише на переході «мережі не було → зʼявилась». Умова
+  // без цього переходу зациклювалась: помилка вмикала повтор, повтор
+  // давав помилку, і запити йшли безперервно.
+  const wasOnline = useRef(online)
   useEffect(() => {
-    if (online && status === 'error') reload()
+    const cameBack = online && !wasOnline.current
+    wasOnline.current = online
+    if (cameBack && status === 'error') reload()
   }, [online, status, reload])
 
   const notify = useCallback((text, options = {}) => {
@@ -85,7 +90,22 @@ export function InventoryProvider({ userId, children }) {
 
   const dismissNotice = useCallback(() => setNotice(null), [])
 
-  const adjust = useCallback(async (itemId, delta, kind, extra = {}) => {
+  // Операції над одним товаром шикуються в чергу: інакше два швидкі тапи
+  // читають той самий стан «до», і фактична зміна другого виходить удвічі
+  // більшою, а скасування повертає зайве.
+  const queues = useRef(new Map())
+
+  const runQueued = useCallback((itemId, task) => {
+    const previous = queues.current.get(itemId) ?? Promise.resolve()
+    const next = previous.catch(() => {}).then(task)
+    queues.current.set(itemId, next)
+    next.catch(() => {}).finally(() => {
+      if (queues.current.get(itemId) === next) queues.current.delete(itemId)
+    })
+    return next
+  }, [])
+
+  const adjustOnce = useCallback(async (itemId, delta, kind, extra = {}) => {
     // Оптимістично міняємо лише запас у шафі: перенесення й списання
     // з користування сервер порахує сам, а розбіжність тут коштувала б
     // дорожче за мить очікування.
@@ -124,6 +144,11 @@ export function InventoryProvider({ userId, children }) {
     return { row: data, applied }
   }, [items])
 
+  const adjust = useCallback(
+    (itemId, delta, kind, extra) =>
+      runQueued(itemId, () => adjustOnce(itemId, delta, kind, extra)),
+    [runQueued, adjustOnce])
+
   // Будь-яка зміна кількості відкочується тим самим способом — зворотною
   // операцією з типом «виправлення». Раніше скасувати можна було лише
   // витрату, хоча помилитись легко і в поповненні, і в перерахунку.
@@ -133,7 +158,8 @@ export function InventoryProvider({ userId, children }) {
     const name = row?.name ?? ''
 
     const label =
-      kind === 'open' ? `Взято в користування · ${name}`
+      kind === 'open'
+        ? (applied > 0 ? `У користуванні · ${name}` : `Повернуто у шафу · ${name}`)
       : kind === 'restock' ? `Додано ${applied} · ${name}`
       : kind === 'correction' ? `Виправлено на ${applied > 0 ? '+' : ''}${applied} · ${name}`
       : bucket === 'in_use' ? `Скінчилось · ${name}`
@@ -172,11 +198,29 @@ export function InventoryProvider({ userId, children }) {
     return data
   }, [])
 
+  // Фото лежить у сховищі окремо від рядка: база його не каскадує,
+  // тож без цього кроку файли накопичувались би назавжди.
+  const removePhotoFile = useCallback(async path => {
+    if (!path) return
+    await supabase.storage.from('photos').remove([path])
+    invalidatePhoto(path)
+  }, [])
+
   const deleteItem = useCallback(async itemId => {
+    const photoPath = items.find(i => i.id === itemId)?.photo_path
     const { error } = await supabase.from('items').delete().eq('id', itemId)
     if (error) throw error
     setItems(current => current.filter(i => i.id !== itemId))
-  }, [])
+    // Файл прибираємо після рядка: якщо не вдасться, товар усе одно видалений.
+    removePhotoFile(photoPath).catch(() => {})
+  }, [items, removePhotoFile])
+
+  const deletePhoto = useCallback(async itemId => {
+    const item = items.find(i => i.id === itemId)
+    if (!item?.photo_path) return
+    await removePhotoFile(item.photo_path)
+    await updateItem(itemId, { photo_path: null })
+  }, [items, removePhotoFile, updateItem])
 
   const uploadPhoto = useCallback(async (itemId, file) => {
     const blob = await compressImage(file)
@@ -222,15 +266,21 @@ export function InventoryProvider({ userId, children }) {
   // Видалення батька забирає й дітей (cascade), а товари з цих категорій
   // лишаються без категорії, але не зникають (items.category_id set null).
   const deleteCategory = useCallback(async id => {
+    const gone = new Set([id, ...categories.filter(c => c.parent_id === id).map(c => c.id)])
     const { error } = await supabase.from('categories').delete().eq('id', id)
     if (error) throw error
-    await Promise.all([reloadCategories(), reload()])
-  }, [reloadCategories, reload])
+
+    await reloadCategories()
+    // Товари не перечитуємо з сервера: відомо рівно те, що змінилось,
+    // а повне перезавантаження блимало скелетонами на весь екран.
+    setItems(current => current.map(i =>
+      gone.has(i.category_id) ? { ...i, category_id: null } : i))
+  }, [categories, reloadCategories])
 
   const value = {
     items, categories, status, error, online, notice,
     reload, adjust: adjustWithUndo, notify, dismissNotice,
-    createItem, updateItem, deleteItem, uploadPhoto,
+    createItem, updateItem, deleteItem, uploadPhoto, deletePhoto,
     createCategory, updateCategory, deleteCategory,
   }
 

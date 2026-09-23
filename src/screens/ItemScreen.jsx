@@ -21,7 +21,7 @@ const KIND_LABEL = {
 export default function ItemScreen() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { items, categories, adjust, deleteItem, uploadPhoto, updateItem, notify } = useInventory()
+  const { items, categories, adjust, deleteItem, uploadPhoto, deletePhoto, updateItem, notify } = useInventory()
   const item = items.find(i => i.id === id)
   const places = collectPlaces(items)
 
@@ -117,16 +117,33 @@ export default function ItemScreen() {
 
       {photoUrl
         ? <img src={photoUrl} alt="" className="hero" />
-        : <label className="hero hero--empty">
-            Додати фото
-            <input type="file" accept="image/*" capture="environment" hidden
-                   onChange={e => {
-                     const f = e.target.files?.[0]
-                     if (f) uploadPhoto(item.id, f)
-                       .then(() => notify('Фото додано', { tone: 'success' }))
-                       .catch(err => notify(err.message, { tone: 'error' }))
-                   }} />
-          </label>}
+        : <div className="hero hero--empty" aria-hidden="true">Фото немає</div>}
+
+      {/* Без capture система сама пропонує камеру або бібліотеку —
+          раніше вибір із галереї був неможливий. */}
+      <div className="photoactions">
+        <label className="ghost photoactions__pick">
+          {photoUrl ? 'Замінити фото' : 'Додати фото'}
+          <input type="file" accept="image/*" hidden
+                 onChange={e => {
+                   const f = e.target.files?.[0]
+                   if (!f) return
+                   uploadPhoto(item.id, f)
+                     .then(() => notify('Фото збережено', { tone: 'success' }))
+                     .catch(err => notify(err.message, { tone: 'error' }))
+                 }} />
+        </label>
+
+        {photoUrl && (
+          <button type="button" className="link link--danger" onClick={() =>
+            deletePhoto(item.id)
+              .then(() => notify('Фото видалено', { tone: 'success' }))
+              .catch(err => notify(err.message, { tone: 'error' }))
+          }>
+            Видалити фото
+          </button>
+        )}
+      </div>
 
       <label className="field">
         Назва
@@ -160,15 +177,24 @@ export default function ItemScreen() {
         <span>У користуванні {formatQty(inUse, item.unit)}</span>
       </div>
 
-      {/* Перенесення з шафи у ванну не є витратою: сума не міняється,
-          тож сигнал «час купувати» не спрацює передчасно. */}
-      <button
-        type="button" className="ghost" disabled={item.qty <= 0 || busy}
-        onClick={() => adjust(item.id, 1, 'open', { bucket: 'move' })
-          .catch(err => notify(err.message, { tone: 'error' }))}
-      >
-        Перенести в користування
-      </button>
+      {/* Перенесення між шафою і користуванням не є витратою: сума не
+          міняється, тож сигнал «час купувати» не спрацює передчасно. */}
+      <div className="row">
+        <button
+          type="button" className="ghost" disabled={item.qty <= 0 || busy}
+          onClick={() => adjust(item.id, 1, 'open', { bucket: 'move' })
+            .catch(err => notify(err.message, { tone: 'error' }))}
+        >
+          У користування
+        </button>
+        <button
+          type="button" className="ghost" disabled={inUse <= 0 || busy}
+          onClick={() => adjust(item.id, -1, 'open', { bucket: 'move' })
+            .catch(err => notify(err.message, { tone: 'error' }))}
+        >
+          Повернути у шафу
+        </button>
+      </div>
 
       <dl className="facts">
         <dt>Ціна за одиницю</dt><dd>{formatPrice(item.last_price)}</dd>
