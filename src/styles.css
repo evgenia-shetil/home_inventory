@@ -608,3 +608,21 @@ details.edit .stack { gap: 12px; }
 /* Службова вкладка відрізняється від категорій, щоб її не читали
    як ще одну категорію. */
 .chip--extra { border-style: dashed; }
+
+.screenhead { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.screenhead h1 { margin: 4px 0; }
+.iconbtn {
+  width: 44px; height: 44px; flex: 0 0 44px;
+  padding: 0; border-radius: 50%;
+  background: transparent; color: var(--muted);
+  border: 1px solid var(--line-strong);
+  display: grid; place-items: center;
+}
+.catsettings {
+  display: flex; flex-direction: column; gap: 12px;
+  padding: 14px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  margin-bottom: 12px;
+}

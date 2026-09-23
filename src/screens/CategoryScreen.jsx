@@ -1,14 +1,18 @@
+import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useInventory } from '../data/InventoryContext.jsx'
 import { groupItems } from '../domain/groups.js'
 import { formatQty } from '../lib/format.js'
 import ItemCard from '../ui/ItemCard.jsx'
 import { Empty } from '../ui/States.jsx'
+import CategorySettings from '../ui/CategorySettings.jsx'
+import { IconMore } from '../ui/icons.jsx'
 
 export default function CategoryScreen() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { items, categories, adjust, notify } = useInventory()
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   const category = categories.find(c => c.id === id)
   if (!category) {
@@ -26,7 +30,21 @@ export default function CategoryScreen() {
   return (
     <>
       <button className="back" onClick={() => navigate(-1)}>← назад</button>
-      <h1>{category.name}</h1>
+      <div className="screenhead">
+        <h1>{category.name}</h1>
+        <button
+          className="iconbtn"
+          aria-label="Налаштування категорії"
+          aria-expanded={settingsOpen}
+          onClick={() => setSettingsOpen(o => !o)}
+        >
+          <IconMore />
+        </button>
+      </div>
+
+      {settingsOpen && (
+        <CategorySettings category={category} onDeleted={() => navigate('/')} />
+      )}
 
       {group?.mixedUnits && (
         <p className="error">
