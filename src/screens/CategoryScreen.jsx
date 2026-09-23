@@ -15,7 +15,7 @@ export default function CategoryScreen() {
     return (
       <div className="stack">
         <h1>Категорію не знайдено</h1>
-        <p className="muted">Її могли видалити або перейменувати.</p>
+        <p className="muted">Категорію видалено або перейменовано.</p>
         <Link to="/"><button>До запасів</button></Link>
       </div>
     )
@@ -30,8 +30,8 @@ export default function CategoryScreen() {
 
       {group?.mixedUnits && (
         <p className="error">
-          У цій категорії різні одиниці виміру, тому підсумок не має сенсу.
-          Зведи їх до однієї в картках товарів.
+          У категорії різні одиниці виміру, тому підсумок некоректний.
+          Одиниці зводяться до однієї в картках товарів.
         </p>
       )}
 
@@ -41,7 +41,7 @@ export default function CategoryScreen() {
             {group.inUse > 0 && `, з них ${formatQty(group.inUse, group.unit)} у користуванні`}
             , сигнал на {formatQty(group.threshold, group.unit)}
           </p>
-        : <Empty title="У цій категорії поки порожньо" />}
+        : <Empty title="Категорія порожня" />}
 
       {group && (
         <div className="grid">
@@ -61,7 +61,7 @@ export default function CategoryScreen() {
         </div>
       )}
 
-      <Link to={`/add?category=${id}`} className="linkline">Додати товар у цю категорію</Link>
+      <Link to={`/add?category=${id}`} className="linkline">Додати товар у категорію</Link>
     </>
   )
 }

@@ -9,12 +9,16 @@
   /* Межа полів вводу мусить бути помітною: 3.22:1 на білому.
      Декоративні межі карток лишаються тонкими. */
   --line-strong: #978e83;
-  --accent: #2f6d5b;
+  /* Синій — дія. Зелений лишений виключно для підтверджень,
+     щоб він щось означав, а не просто фарбував кнопки. */
+  --accent: #2b5fa8;
+  --success: #2f6d5b;
   --warn: #b4531f;
 
   /* Колір тексту ПОВЕРХ заливок. Окремими токенами, бо в темній темі
      заливки світлішають і білий напис на них провалює контраст. */
   --on-accent: #ffffff;
+  --on-success: #ffffff;
   --on-warn: #ffffff;
   --invert-bg: #1c1b1a;
   --invert-fg: #ffffff;
@@ -33,10 +37,12 @@
     --muted: #a69d92;
     --line: #34322e;
     --line-strong: #7a736a;
-    --accent: #4e9c81;
+    --accent: #6fa8dc;
+    --success: #4e9c81;
     --warn: #e08a5a;
 
     --on-accent: #17161a;
+    --on-success: #17161a;
     --on-warn: #17161a;
     --invert-bg: #f2efe9;
     --invert-fg: #17161a;
@@ -592,3 +598,9 @@ details.edit .stack { gap: 12px; }
 
 .recent { margin-bottom: 16px; }
 .recent__title { font-size: 14px; color: var(--muted); margin: 0 0 8px; }
+
+/* Підтвердження — єдине місце, де колір лишається зеленим. */
+.toast--success { background: var(--success); color: var(--on-success); }
+.toast--success button { color: var(--on-success); }
+
+.recent, .recent__title { display: none; }

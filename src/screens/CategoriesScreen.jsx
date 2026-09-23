@@ -28,9 +28,9 @@ export default function CategoriesScreen() {
     setBusy(true)
     try {
       await action()
-      if (okMessage) notify(okMessage)
+      if (okMessage) notify(okMessage, { tone: 'success' })
     } catch (err) {
-      notify(err.code === '23505' ? 'Така назва вже є на цьому рівні' : err.message,
+      notify(err.code === '23505' ? 'Назва вже використовується на цьому рівні' : err.message,
              { tone: 'error' })
     } finally {
       setBusy(false)
@@ -66,8 +66,8 @@ export default function CategoriesScreen() {
       if (String(next ?? '') === String(category.target ?? '')) return
       updateCategory(category.id, { target: next })
         .then(() => notify(next === null
-          ? `Ціль для «${category.name}» прибрано`
-          : `Мати після покупки: ${next}`))
+          ? `Запас для «${category.name}» не задано`
+          : `Запас після поповнення: ${next}`))
         .catch(err => notify(err.message, { tone: 'error' }))
     }, 700)
   }
@@ -117,7 +117,7 @@ export default function CategoriesScreen() {
             />
           </div>
           <div className="cat__threshold">
-            <span className="muted">скільки мати після покупки</span>
+            <span className="muted">запас після поповнення</span>
             <QtyInput
               value={targetValue(category)}
               onChange={v => setTargets(d => ({ ...d, [category.id]: v }))}
@@ -134,20 +134,20 @@ export default function CategoriesScreen() {
       <button className="back" onClick={() => navigate(-1)}>← назад</button>
       <h1>Категорії</h1>
       <details className="info">
-        <summary>Як працює сигнал</summary>
+        <summary>Про сигнал</summary>
         <p>
-          Сигнал задається на підкатегорії й рахується на всі товари в ній разом:
-          якщо зубних щіток чотири різні марки, сигнал прийде, коли їх сумарно
-          лишиться стільки, скільки тут вказано.
+          Сигнал задається на підкатегорії й рахується на всі товари в ній разом.
+          Наприклад, для чотирьох різних марок зубних щіток він спрацює, коли
+          їх сумарно лишиться стільки, скільки вказано.
         </p>
         <p>
-          Друге число — скільки мати після покупки. Воно відповідає на інше
-          питання: не «коли повідомити», а «скільки брати». Якщо лишити
-          порожнім, список покупок просто не називатиме кількість.
+          Друге число — запас після поповнення. Воно відповідає на інше питання:
+          не «коли повідомити», а «скільки брати». Без нього список покупок
+          не називає кількість.
         </p>
         <p>
-          Головна категорія — лише папка, власного сигналу вона не має.
-          Назву можна змінити прямо в рядку.
+          Головна категорія — лише папка, власного сигналу не має.
+          Назва змінюється прямо в рядку.
         </p>
       </details>
 
@@ -168,7 +168,7 @@ export default function CategoriesScreen() {
           >
             <input
               value={newChild[root.id] ?? ''}
-              placeholder={`підкатегорія в «${root.name}»`}
+              placeholder={`Підкатегорія в «${root.name}»`}
               onChange={e => setNewChild(v => ({ ...v, [root.id]: e.target.value }))}
             />
             <button type="submit" disabled={busy}>+</button>
@@ -186,7 +186,7 @@ export default function CategoriesScreen() {
       >
         <input
           value={newRoot}
-          placeholder="нова головна категорія"
+          placeholder="Нова категорія"
           onChange={e => setNewRoot(e.target.value)}
         />
         <button type="submit" disabled={busy}>+</button>
@@ -199,7 +199,7 @@ export default function CategoriesScreen() {
               ? `Разом з нею зникнуть підкатегорії (${childrenOf(pendingDelete.id).length}).`
               : null,
             countItems(pendingDelete)
-              ? `Товари (${countItems(pendingDelete)}) не зникнуть, але лишаться без категорії.`
+              ? `Товари (${countItems(pendingDelete)}) збережуться, але лишаться без категорії.`
               : null,
             'Скасувати цю дію буде неможливо.',
           ].filter(Boolean).join(' ')}

@@ -13,10 +13,10 @@ import PlaceInput from '../ui/PlaceInput.jsx'
 const UNITS = ['шт', 'кг', 'г', 'л', 'мл', 'пачка', 'рулон']
 
 const PHOTO_NOTE = {
-  loading: 'фото завантажується з каталогу…',
+  loading: 'фото завантажується…',
   ready: 'фото взято з каталогу',
-  none: 'у каталозі немає фото — зніми сама',
-  failed: 'фото з каталогу не завантажилось — зніми сама',
+  none: 'у каталозі немає фото',
+  failed: 'фото не завантажилось',
 }
 
 export default function AddItemScreen() {
@@ -125,14 +125,14 @@ export default function AddItemScreen() {
         try {
           await uploadPhoto(item.id, file)
         } catch {
-          setError('Товар збережено, але фото не завантажилось. Додай його в картці.')
+          setError('Товар збережено. Фото не завантажилось — його можна додати в картці.')
         }
       }
 
       navigate(next === 'scan' ? '/scan' : '/', { replace: true })
     } catch (err) {
       setError(err.code === '23505'
-        ? 'Цей штрихкод уже привʼязаний до іншого товару'
+        ? 'Штрихкод уже привʼязаний до іншого товару'
         : err.message)
       setBusy(false)
     }
@@ -146,15 +146,15 @@ export default function AddItemScreen() {
       {barcode && (
         <p className="muted">
           Штрихкод {barcode}
-          {lookup === 'searching' && ' · шукаю в каталогах…'}
-          {lookup === 'found' && ' · знайдено, перевір назву'}
-          {lookup === 'missing' && ' · у каталогах немає, впиши назву сама'}
+          {lookup === 'searching' && ' · пошук у каталогах…'}
+          {lookup === 'found' && ' · знайдено'}
+          {lookup === 'missing' && ' · у каталогах немає'}
           {PHOTO_NOTE[photoState] && ` · ${PHOTO_NOTE[photoState]}`}
         </p>
       )}
 
       {!barcode && (
-        <Link to="/scan" className="linkline">Сканувати штрихкод замість ручного вводу</Link>
+        <Link to="/scan" className="linkline">Сканування штрихкоду</Link>
       )}
 
       <label className="field">
@@ -206,7 +206,7 @@ export default function AddItemScreen() {
           value={form.childId}
           parentId={form.rootId || null}
           disabled={!form.rootId}
-          emptyLabel={form.rootId ? 'не обрано' : 'спершу обери категорію'}
+          emptyLabel={form.rootId ? 'не обрано' : 'спочатку категорія'}
           onChange={id => { setCategoryTouched(true); set('childId', id) }}
         />
       </label>
@@ -225,7 +225,16 @@ export default function AddItemScreen() {
 
       {error && <p className="error">{error}</p>}
 
-      <button type="submit" disabled={busy}>{busy ? 'Зберігаю…' : 'Зберегти'}</button>
+      <button type="submit" disabled={busy} onClick={() => setNext('home')}>
+        {busy ? 'Збереження…' : 'Зберегти'}
+      </button>
+
+      {/* Запаси заводяться пачками: повернення на головну після кожного
+          товару змушує щоразу шукати кнопку сканера заново. */}
+      <button type="submit" className="ghost" disabled={busy} onClick={() => setNext('scan')}>
+        Зберегти і сканувати далі
+      </button>
+
       <button type="button" className="ghost" onClick={() => navigate(-1)}>Скасувати</button>
     </form>
   )

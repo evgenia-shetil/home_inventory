@@ -20,7 +20,7 @@ export default function ShoppingScreen() {
   const low = shoppingGroups(groupItems(items, categories))
 
   if (low.length === 0) {
-    return <Empty title="Усе на місці — купувати нічого" />
+    return <Empty title="Потреб немає" />
   }
 
   const cost = estimateCost(low)
@@ -41,17 +41,17 @@ export default function ShoppingScreen() {
       <h1>Купити</h1>
       <p className="muted">
         {low.length} {plural(low.length, 'потреба', 'потреби', 'потреб')}
-        {cost.known > 0 && ` · орієнтовно ${formatPrice(cost.total)}, якщо взяти по одній`}
-        {cost.unknown > 0 && ` (для ${cost.unknown} ціни ще немає)`}
+        {cost.known > 0 && ` · орієнтовно ${formatPrice(cost.total)} за одну одиницю кожного`}
+        {cost.unknown > 0 && ` (для ${cost.unknown} ціна невідома)`}
       </p>
 
       {cost.known > 0 && (
         <details className="info">
-          <summary>Звідки ця сума</summary>
+          <summary>Про розрахунок</summary>
           <p>
-            Береться найдешевша з відомих цін у кожній потребі, по одній штуці.
-            Ціни зберігаються з останньої покупки, тож у магазині вони можуть
-            відрізнятись. Це орієнтир, а не рахунок.
+            Береться найдешевша з відомих цін у кожній потребі, по одній одиниці.
+            Ціни збережені з останньої покупки і могли змінитись. Це орієнтир,
+            а не рахунок.
           </p>
         </details>
       )}
@@ -86,9 +86,9 @@ export default function ShoppingScreen() {
                     className="brand__buy"
                     disabled={busyId === item.id}
                     onClick={() => buy(item.id)}
-                    aria-label={`Купила одну: ${item.name}`}
+                    aria-label={`Позначити куплено: ${item.name}`}
                   >
-                    купила
+                    Куплено
                   </button>
                 </li>
               ))}

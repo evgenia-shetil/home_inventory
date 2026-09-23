@@ -11,7 +11,7 @@ describe('validatePassword', () => {
   })
 
   it('відхиляє порожній', () => {
-    expect(validatePassword('')).toBe('Введи пароль')
+    expect(validatePassword('')).toBe('Пароль не вказано')
   })
 })
 
@@ -23,12 +23,12 @@ describe('authErrorMessage', () => {
 
   it('пояснює ліміт листів', () => {
     expect(authErrorMessage({ message: 'email rate limit exceeded' }))
-      .toBe('Забагато листів за годину. Увійди паролем або зачекай')
+      .toBe('Перевищено ліміт листів за годину. Доступний вхід за паролем')
   })
 
   it('пояснює закриту реєстрацію', () => {
     expect(authErrorMessage({ message: 'Signups not allowed for this instance' }))
-      .toBe('Реєстрація закрита. Цей акаунт треба створити в Supabase')
+      .toBe('Реєстрація закрита')
   })
 
   it('віддає оригінал, коли переклад невідомий', () => {

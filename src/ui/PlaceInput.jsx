@@ -13,12 +13,12 @@ export default function PlaceInput({ value, places, onChange }) {
       <div className="placeinput">
         <input
           value={value}
-          placeholder="назва магазину"
+          placeholder="Магазин"
           onChange={e => onChange(e.target.value)}
           autoFocus
         />
         <button type="button" className="link" onClick={() => { setTyping(false); onChange('') }}>
-          обрати зі списку
+          Обрати зі списку
         </button>
       </div>
     )

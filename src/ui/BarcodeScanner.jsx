@@ -24,7 +24,7 @@ export default function BarcodeScanner({ onDetect, onCancel }) {
 
     async function start() {
       if (!navigator.mediaDevices?.getUserMedia) {
-        setError('Браузер не дає доступу до камери')
+        setError('Браузер не підтримує доступ до камери')
         return
       }
 
@@ -63,8 +63,8 @@ export default function BarcodeScanner({ onDetect, onCancel }) {
       } catch (err) {
         setError(
           err.name === 'NotAllowedError'
-            ? 'Доступ до камери заборонено. Дозволь його в налаштуваннях браузера'
-            : 'Не вдалося увімкнути камеру: ' + err.message
+            ? 'Доступ до камери заборонено. Змінити можна в налаштуваннях браузера'
+            : 'Камеру не вдалося увімкнути: ' + err.message
         )
       }
     }
@@ -85,7 +85,7 @@ export default function BarcodeScanner({ onDetect, onCancel }) {
         : <>
             <video ref={videoRef} className="scanner__video" playsInline muted />
             <div className="scanner__frame" aria-hidden="true" />
-            <p className="muted">Наведи камеру на штрихкод</p>
+            <p className="muted">Штрихкод має потрапити в рамку</p>
           </>}
       <button className="ghost" onClick={onCancel}>Скасувати</button>
     </div>

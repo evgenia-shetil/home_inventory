@@ -21,7 +21,7 @@ export default function StockScreen() {
   if (items.length === 0) {
     return (
       <Empty
-        title="Поки що порожньо"
+        title="Запасів немає"
         action={<>
           <Link to="/scan"><button>Сканувати штрихкод</button></Link>
           <Link to="/add"><button className="ghost">Додати вручну</button></Link>
@@ -42,13 +42,6 @@ export default function StockScreen() {
       .catch(err => notify(err.message, { tone: 'error' }))
   }
 
-  // Головна дія коштує два переходи: категорія → картка. Запаси мають
-  // довгий хвіст — більшість речей лежить місяцями, а витрачається щодня
-  // одне й те саме, тож кілька останніх покривають більшість дотиків.
-  const recent = [...items]
-    .filter(i => i.updated_at && i.updated_at !== i.created_at)
-    .sort((a, b) => String(b.updated_at).localeCompare(String(a.updated_at)))
-    .slice(0, 4)
 
   const roots = categories.filter(c => !c.parent_id)
   const children = categories.filter(c => c.parent_id === root)
@@ -68,7 +61,7 @@ export default function StockScreen() {
         <input
           type="search"
           value={query}
-          placeholder="знайти товар"
+          placeholder="Пошук"
           onChange={e => setQuery(e.target.value)}
         />
         {query && (
@@ -95,24 +88,9 @@ export default function StockScreen() {
                 />
               ))}
             </div>
-          : <Empty title={`Нічого не знайшлось за «${query}»`} />
+          : <Empty title="Нічого не знайдено" />
       )}
 
-      {!found && recent.length > 0 && !root && (
-        <section className="recent">
-          <h2 className="recent__title">Нещодавні</h2>
-          <div className="grid">
-            {recent.map(item => (
-              <ItemCard
-                key={item.id}
-                item={item}
-                low={false}
-                onConsume={id => consumeOne(id)}
-              />
-            ))}
-          </div>
-        </section>
-      )}
 
       {!found && <CategoryStrip categories={roots} selected={root} onSelect={setRoot} />}
 

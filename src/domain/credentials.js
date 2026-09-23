@@ -2,7 +2,7 @@
 const MIN_LENGTH = 6
 
 export function validatePassword(password) {
-  if (!password) return 'Введи пароль'
+  if (!password) return 'Пароль не вказано'
   if (password.length < MIN_LENGTH) {
     return `Пароль має бути не коротшим за ${MIN_LENGTH} символів`
   }
@@ -13,8 +13,8 @@ export function validatePassword(password) {
 // які користувачка справді може побачити, з поясненням що робити далі.
 const MESSAGES = [
   ['Invalid login credentials', 'Невірна пошта або пароль'],
-  ['email rate limit exceeded', 'Забагато листів за годину. Увійди паролем або зачекай'],
-  ['Signups not allowed', 'Реєстрація закрита. Цей акаунт треба створити в Supabase'],
+  ['email rate limit exceeded', 'Перевищено ліміт листів за годину. Доступний вхід за паролем'],
+  ['Signups not allowed', 'Реєстрація закрита'],
   ['Email not confirmed', 'Пошта не підтверджена'],
   ['same as the old password', 'Новий пароль збігається зі старим'],
 ]

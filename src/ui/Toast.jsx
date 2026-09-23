@@ -19,14 +19,14 @@ export default function Toast() {
     dismissNotice()
     try {
       await notice.undo()
-      notify('Скасовано')
+      notify('Скасовано', { tone: 'success' })
     } catch (err) {
       notify(err.message, { tone: 'error' })
     }
   }
 
   return (
-    <div className={`toast${notice.tone === 'error' ? ' toast--error' : ''}`} role="status">
+    <div className={`toast toast--${notice.tone}`} role="status">
       <span>{notice.text}</span>
       {notice.undo
         ? <button onClick={undo}>Скасувати</button>

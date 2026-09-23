@@ -21,7 +21,7 @@ export function ErrorState({ message, onRetry }) {
   return (
     <div className="empty">
       <p className="error">{message}</p>
-      <button onClick={onRetry}>Спробувати ще</button>
+      <button onClick={onRetry}>Повторити</button>
     </div>
   )
 }

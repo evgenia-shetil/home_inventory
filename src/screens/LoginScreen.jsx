@@ -25,7 +25,7 @@ export default function LoginScreen() {
   // має жорсткий ліміт, тому це саме запасний варіант, а не основний.
   async function sendMagicLink() {
     if (!email) {
-      setError('Спершу введи пошту')
+      setError('Пошта не вказана')
       return
     }
     setStatus('busy')
@@ -43,9 +43,9 @@ export default function LoginScreen() {
   if (status === 'sent') {
     return (
       <main className="screen center">
-        <h1>Перевір пошту</h1>
-        <p className="muted">Посилання для входу надіслано на {email}.</p>
-        <button className="ghost" onClick={() => setStatus('idle')}>Назад</button>
+        <h1>Лист надіслано</h1>
+        <p className="muted">Посилання для входу відправлено на {email}.</p>
+        <button className="ghost" onClick={() => setStatus('idle')}>Повернутись</button>
       </main>
     )
   }
@@ -55,21 +55,21 @@ export default function LoginScreen() {
       <h1>Запаси</h1>
       <form onSubmit={signInWithPassword} className="stack">
         <input
-          type="email" required value={email} placeholder="пошта"
+          type="email" required value={email} placeholder="Пошта"
           autoComplete="username" onChange={e => setEmail(e.target.value)}
         />
         <input
-          type="password" required value={password} placeholder="пароль"
+          type="password" required value={password} placeholder="Пароль"
           autoComplete="current-password" onChange={e => setPassword(e.target.value)}
         />
         <button type="submit" disabled={status === 'busy'}>
-          {status === 'busy' ? 'Заходжу…' : 'Увійти'}
+          {status === 'busy' ? 'Вхід…' : 'Увійти'}
         </button>
         {error && <p className="error">{error}</p>}
       </form>
 
       <button className="link" onClick={sendMagicLink} disabled={status === 'busy'}>
-        Забула пароль — надіслати посилання на пошту
+        Увійти за посиланням на пошту
       </button>
     </main>
   )

@@ -32,7 +32,7 @@ export default function CategorySelect({
       setTyping(false)
       setDraft('')
     } catch (err) {
-      setError(err.code === '23505' ? 'Така назва вже є на цьому рівні' : err.message)
+      setError(err.code === '23505' ? 'Назва вже використовується на цьому рівні' : err.message)
     } finally {
       setBusy(false)
     }
@@ -44,7 +44,7 @@ export default function CategorySelect({
         <div className="newcat__row">
           <input
             value={draft}
-            placeholder="назва категорії"
+            placeholder="Назва категорії"
             autoFocus
             onChange={e => setDraft(e.target.value)}
             onKeyDown={e => {
@@ -56,7 +56,7 @@ export default function CategorySelect({
         </div>
         {error && <span className="error">{error}</span>}
         <button type="button" className="link" onClick={() => { setTyping(false); setError(null) }}>
-          обрати зі списку
+          Обрати зі списку
         </button>
       </div>
     )

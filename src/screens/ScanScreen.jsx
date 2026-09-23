@@ -16,7 +16,7 @@ export default function ScanScreen() {
     const code = normalizeBarcode(raw)
 
     if (!isValidBarcode(code)) {
-      setWarning('Код прочитався неповністю, спробуй ще раз')
+      setWarning('Код прочитано неповністю')
       return
     }
 
@@ -25,7 +25,7 @@ export default function ScanScreen() {
     // Режим прив'язки: пришпилюємо код до конкретного товару.
     if (attachTo) {
       if (known && known.id !== attachTo) {
-        setWarning(`Цей штрихкод уже належить товару «${known.name}»`)
+        setWarning(`Штрихкод уже належить товару «${known.name}»`)
         return
       }
       try {
@@ -53,23 +53,22 @@ export default function ScanScreen() {
   if (unknown) {
     return (
       <div className="stack">
-        <h1>Такого в тебе немає</h1>
+        <h1>Немає в запасах</h1>
         <p className="muted">
-          Штрихкод {unknown} не знайдено серед твоїх запасів.
-          Якщо ти просто перевіряла в магазині — можна нічого не робити.
+          Штрихкод {unknown} не знайдено серед запасів.
         </p>
         <button onClick={() => navigate(`/add?barcode=${unknown}`, { replace: true })}>
-          Завести цей товар
+          Додати товар
         </button>
-        <button className="ghost" onClick={() => setUnknown(null)}>Сканувати ще</button>
-        <button className="ghost" onClick={() => navigate('/')}>Готово</button>
+        <button className="ghost" onClick={() => setUnknown(null)}>Сканувати далі</button>
+        <button className="ghost" onClick={() => navigate('/')}>Закрити</button>
       </div>
     )
   }
 
   return (
     <div className="stack">
-      <h1>{attachTo ? 'Привʼязати штрихкод' : 'Сканувати'}</h1>
+      <h1>{attachTo ? 'Привʼязка штрихкоду' : 'Сканувати'}</h1>
       {warning && <p className="error">{warning}</p>}
       <BarcodeScanner
         onDetect={handleDetect}

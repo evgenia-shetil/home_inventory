@@ -51,7 +51,7 @@ export default function ItemScreen() {
     return (
       <div className="stack">
         <h1>Товар не знайдено</h1>
-        <p className="muted">Схоже, його видалили або посилання застаріло.</p>
+        <p className="muted">Товар видалено або посилання застаріло.</p>
         <Link to="/"><button>До запасів</button></Link>
       </div>
     )
@@ -62,9 +62,9 @@ export default function ItemScreen() {
   const rootId = current ? (current.parent_id ?? current.id) : ''
   const childId = current?.parent_id ? current.id : ''
 
-  const save = (fields, message) =>
+  const save = (fields, message, tone = 'info') =>
     updateItem(item.id, fields)
-      .then(() => { if (message) notify(message) })
+      .then(() => { if (message) notify(message, { tone }) })
       .catch(err => notify(err.message, { tone: 'error' }))
 
   async function handleRestock(e) {
@@ -123,7 +123,7 @@ export default function ItemScreen() {
                    onChange={e => {
                      const f = e.target.files?.[0]
                      if (f) uploadPhoto(item.id, f)
-                       .then(() => notify('Фото додано'))
+                       .then(() => notify('Фото додано', { tone: 'success' }))
                        .catch(err => notify(err.message, { tone: 'error' }))
                    }} />
           </label>}
@@ -135,7 +135,7 @@ export default function ItemScreen() {
           onChange={e => setName(e.target.value)}
           onBlur={() => {
             const next = name.trim()
-            if (next && next !== item.name) save({ name: next }, 'Назву збережено')
+            if (next && next !== item.name) save({ name: next }, 'Назву збережено', 'success')
             else setName(item.name)
           }}
         />
@@ -167,7 +167,7 @@ export default function ItemScreen() {
         onClick={() => adjust(item.id, 1, 'open', { bucket: 'move' })
           .catch(err => notify(err.message, { tone: 'error' }))}
       >
-        Взяти одну в користування
+        Перенести в користування
       </button>
 
       <dl className="facts">
@@ -178,7 +178,7 @@ export default function ItemScreen() {
         <dd>
           {item.barcode
             ? item.barcode
-            : <Link to={`/scan?attach=${item.id}`} className="linkline">привʼязати</Link>}
+            : <Link to={`/scan?attach=${item.id}`} className="linkline">Привʼязати</Link>}
         </dd>
       </dl>
 
@@ -208,21 +208,21 @@ export default function ItemScreen() {
             />
           </div>
         </div>
-        <button type="submit" disabled={busy}>{busy ? 'Зберігаю…' : 'Поповнити'}</button>
+        <button type="submit" disabled={busy}>{busy ? 'Збереження…' : 'Поповнити'}</button>
       </form>
 
       {/* Другорядне сховане за розкриттям: щодня потрібні лише «−1»
           і поповнення, решта — зрідка й навмисно. */}
       <details className="edit">
-        <summary>Виправити й налаштувати</summary>
+        <summary>Налаштування товару</summary>
         <div className="stack">
           <form onSubmit={handleRecount} className="stack">
             <p className="muted">
-              Порахувала полицю й число не збіглось — впиши, скільки насправді.
-              У журналі зʼявиться виправлення.
+              Фактична кількість, якщо вона відрізняється від обліку.
+              У журналі буде записано виправлення.
             </p>
             <QtyInput value={recount} onChange={setRecount} unit={item.unit} />
-            <button type="submit" className="ghost" disabled={busy}>Виправити кількість</button>
+            <button type="submit" className="ghost" disabled={busy}>Змінити кількість</button>
           </form>
 
           <div className="row">
@@ -239,7 +239,7 @@ export default function ItemScreen() {
                 value={childId}
                 parentId={rootId || null}
                 disabled={!rootId}
-                emptyLabel={rootId ? 'не обрано' : 'спершу обери категорію'}
+                emptyLabel={rootId ? 'не обрано' : 'спочатку категорія'}
                 onChange={cat => save({ category_id: cat || rootId || null })}
               />
             </div>
@@ -250,19 +250,19 @@ export default function ItemScreen() {
               type="checkbox"
               checked={item.recurring !== false}
               onChange={e => save({ recurring: e.target.checked },
-                e.target.checked ? 'Буде у списку покупок' : 'Прибрано зі списку покупок')}
+                e.target.checked ? 'Потрапляє до списку покупок' : 'Виключено зі списку покупок')}
             />
             <span>
-              Поповнювати, коли скінчиться
+              Поповнювати після витрачання
               <small className="muted">
-                Разові речі краще вимкнути — інакше вони назавжди оселяться у «Купити»
+                Вимкнено — товар лишається в запасах, але не потрапляє до списку покупок
               </small>
             </span>
           </label>
 
           <label className="field">
             Одиниця виміру
-            <select value={item.unit} onChange={e => save({ unit: e.target.value }, 'Одиницю змінено')}>
+            <select value={item.unit} onChange={e => save({ unit: e.target.value }, 'Одиницю змінено', 'success')}>
               {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
             </select>
           </label>
@@ -275,14 +275,14 @@ export default function ItemScreen() {
 
       <h2>Історія</h2>
       {events.length === 0
-        ? <p className="muted">Операцій ще не було.</p>
+        ? <p className="muted">Операцій немає.</p>
         : <ul className="history">
             {events.map(e => (
               <li key={e.id}>
                 <span>{Number(e.delta) > 0 ? `+${e.delta}` : e.delta}</span>
                 <span className="muted">
                   {KIND_LABEL[e.kind] ?? e.kind}
-                  {e.bucket === 'in_use' && ' (з ванної)'}
+                  {e.bucket === 'in_use' && ' (з користування)'}
                   {e.price !== null && e.price !== undefined && ` · ${formatPrice(e.price)}`}
                   {e.place && ` · ${e.place}`}
                 </span>
@@ -297,7 +297,7 @@ export default function ItemScreen() {
       {confirmDelete && (
         <Dialog
           title={`Видалити «${item.name}»?`}
-          description="Разом із товаром зникне весь його журнал операцій і привʼязаний штрихкод. Якщо річ просто скінчилась, краще лишити її з нулем — тоді історія та штрихкод збережуться."
+          description="Разом із товаром буде видалено журнал операцій і привʼязаний штрихкод. Якщо річ тимчасово скінчилась, достатньо лишити нульову кількість — історія та штрихкод збережуться."
           confirmLabel="Видалити"
           tone="danger"
           onConfirm={handleDelete}
