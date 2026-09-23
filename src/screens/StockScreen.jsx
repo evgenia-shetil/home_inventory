@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useInventory } from '../data/InventoryContext.jsx'
 import { groupItems } from '../domain/groups.js'
+import { searchItems } from '../domain/search.js'
+import ItemCard from '../ui/ItemCard.jsx'
 import { formatQty } from '../lib/format.js'
 import { plural } from '../lib/plural.js'
 import CategoryStrip from '../ui/CategoryStrip.jsx'
@@ -9,8 +11,9 @@ import { Skeleton, Empty, ErrorState } from '../ui/States.jsx'
 import ScanIcon from '../ui/ScanIcon.jsx'
 
 export default function StockScreen() {
-  const { items, categories, status, error, reload } = useInventory()
+  const { items, categories, status, error, reload, adjust } = useInventory()
   const [root, setRoot] = useState(null)
+  const [query, setQuery] = useState('')
 
   if (status === 'loading') return <Skeleton count={5} />
   if (status === 'error') return <ErrorState message={error} onRetry={reload} />
@@ -27,6 +30,10 @@ export default function StockScreen() {
     )
   }
 
+  // Під час пошуку перелік потреб недоречний: шукають конкретну річ,
+  // тож показуємо плаский список збігів.
+  const found = query.trim() ? searchItems(items, query) : null
+
   const roots = categories.filter(c => !c.parent_id)
   const children = categories.filter(c => c.parent_id === root)
 
@@ -41,9 +48,32 @@ export default function StockScreen() {
 
   return (
     <>
-      <CategoryStrip categories={roots} selected={root} onSelect={setRoot} />
+      <input
+        className="search"
+        type="search"
+        value={query}
+        placeholder="знайти товар"
+        onChange={e => setQuery(e.target.value)}
+      />
 
-      <ul className="groups">
+      {found && (
+        found.length
+          ? <div className="grid">
+              {found.map(item => (
+                <ItemCard
+                  key={item.id}
+                  item={item}
+                  low={false}
+                  onConsume={id => adjust(id, -1, 'consume').catch(() => {})}
+                />
+              ))}
+            </div>
+          : <Empty title={`Нічого не знайшлось за «${query}»`} />
+      )}
+
+      {!found && <CategoryStrip categories={roots} selected={root} onSelect={setRoot} />}
+
+      {!found && <ul className="groups">
         {groups.map(group => (
           <li key={group.key}>
             <Link
@@ -60,7 +90,7 @@ export default function StockScreen() {
             </Link>
           </li>
         ))}
-      </ul>
+      </ul>}
 
       <div className="fabs">
         <Link to="/add" className="fab fab--small" aria-label="Додати товар вручну">+</Link>

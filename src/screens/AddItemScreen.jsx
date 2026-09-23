@@ -157,11 +157,13 @@ export default function AddItemScreen() {
 
       <label className="field">
         Фото
-        <input
-          type="file" accept="image/*" capture="environment"
-          onChange={e => { setFile(e.target.files?.[0] ?? null); setPhotoState('idle') }}
-        />
-        {file && <span className="muted">Обрано: {file.name}</span>}
+        <span className="filepick">
+          {file ? file.name : 'Обрати фото'}
+          <input
+            type="file" accept="image/*" capture="environment" hidden
+            onChange={e => { setFile(e.target.files?.[0] ?? null); setPhotoState('idle') }}
+          />
+        </span>
       </label>
 
       <label className="field">
@@ -185,7 +187,7 @@ export default function AddItemScreen() {
         </select>
       </label>
 
-      <div className="field">
+      <label className="field">
         Категорія
         <CategorySelect
           value={form.rootId}
@@ -194,9 +196,9 @@ export default function AddItemScreen() {
             setForm(f => ({ ...f, rootId: id, childId: '' }))
           }}
         />
-      </div>
+      </label>
 
-      <div className="field">
+      <label className="field">
         Підкатегорія
         <CategorySelect
           value={form.childId}
@@ -205,7 +207,7 @@ export default function AddItemScreen() {
           emptyLabel={form.rootId ? 'не обрано' : 'спершу обери категорію'}
           onChange={id => { setCategoryTouched(true); set('childId', id) }}
         />
-      </div>
+      </label>
 
       <div className="row">
         <label className="field">
@@ -213,16 +215,16 @@ export default function AddItemScreen() {
           <input type="number" inputMode="decimal" step="0.01" min="0"
                  value={form.last_price} onChange={e => set('last_price', e.target.value)} />
         </label>
-        <div className="field">
+        <label className="field">
           Де куплено
           <PlaceInput value={form.last_place} places={places} onChange={v => set('last_place', v)} />
-        </div>
+        </label>
       </div>
 
       {error && <p className="error">{error}</p>}
 
       <button type="submit" disabled={busy}>{busy ? 'Зберігаю…' : 'Зберегти'}</button>
-      <button type="button" className="ghost" onClick={() => navigate('/')}>Скасувати</button>
+      <button type="button" className="ghost" onClick={() => navigate(-1)}>Скасувати</button>
     </form>
   )
 }

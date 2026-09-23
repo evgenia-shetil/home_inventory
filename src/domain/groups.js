@@ -45,6 +45,9 @@ export function groupItems(items = [], categories = []) {
   return [...groups.values()]
     .map(group => ({
       ...group,
+      // Складати кілограми зі штуками безглуздо, але заборонити це на
+      // рівні даних не можна — позначаємо, щоб інтерфейс попередив.
+      mixedUnits: new Set(group.items.map(i => i.unit)).size > 1,
       // Всередині групи попереду те, чого лишилось найменше.
       items: [...group.items].sort(
         (a, b) => Number(a.qty) - Number(b.qty) || a.name.localeCompare(b.name, 'uk')

@@ -120,3 +120,23 @@ describe('поріг лише на підкатегорії', () => {
     expect(groups[0].threshold).toBe(2)
   })
 })
+
+describe('змішані одиниці', () => {
+  const cats = [{ id: 'c', name: 'шампунь', parent_id: 'r', threshold: 1 }]
+
+  it('позначає групу, де складаються різні одиниці', () => {
+    const groups = groupItems([
+      { id: '1', name: 'a', qty: 1, category_id: 'c', unit: 'шт' },
+      { id: '2', name: 'b', qty: 500, category_id: 'c', unit: 'мл' },
+    ], cats)
+    expect(groups[0].mixedUnits).toBe(true)
+  })
+
+  it('однакові одиниці позначки не мають', () => {
+    const groups = groupItems([
+      { id: '1', name: 'a', qty: 1, category_id: 'c', unit: 'шт' },
+      { id: '2', name: 'b', qty: 2, category_id: 'c', unit: 'шт' },
+    ], cats)
+    expect(groups[0].mixedUnits).toBe(false)
+  })
+})

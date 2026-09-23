@@ -44,3 +44,22 @@ describe('stepQty', () => {
     expect(stepQty('', -1)).toBe('0')
   })
 })
+
+describe('correctionDelta', () => {
+  it('рахує, скільки додати чи відняти до потрібного числа', async () => {
+    const { correctionDelta } = await import('./quantity.js')
+    expect(correctionDelta(7, '3')).toBe(-4)
+    expect(correctionDelta(1, '5')).toBe(4)
+  })
+
+  it('нуль, коли нічого не змінилось', async () => {
+    const { correctionDelta } = await import('./quantity.js')
+    expect(correctionDelta(3, '3')).toBe(0)
+  })
+
+  it('розуміє кому і порожнє поле', async () => {
+    const { correctionDelta } = await import('./quantity.js')
+    expect(correctionDelta(1, '2,5')).toBe(1.5)
+    expect(correctionDelta(2, '')).toBe(-2)
+  })
+})

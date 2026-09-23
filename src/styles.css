@@ -103,8 +103,12 @@ button:disabled { opacity: .5; }
 .chip {
   width: auto;
   flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
   padding: 8px 14px;
-  min-height: 0;
+  /* 44px — мінімальна ціль для пальця: це основний перемикач фільтра
+     на головному екрані, не службова кнопка. */
+  min-height: 44px;
   background: var(--surface);
   color: var(--muted);
   border: 1px solid var(--line);
@@ -113,7 +117,21 @@ button:disabled { opacity: .5; }
 }
 .chip--on { background: var(--text); color: #fff; border-color: var(--text); }
 
-.empty { text-align: center; padding: 48px 16px; color: var(--muted); }
+/* Порожній стан заповнює екран, а не висить угорі над стіною
+   білого простору: центрування по висоті робить його намірним станом,
+   а не забутим шматком розмітки. */
+.empty {
+  min-height: calc(100dvh - var(--nav-h) - env(safe-area-inset-bottom) - 32px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+  padding: 48px 16px;
+  color: var(--muted);
+}
+.empty > a { width: 100%; max-width: 320px; }
 
 .fab {
   position: fixed;
@@ -131,7 +149,11 @@ button:disabled { opacity: .5; }
   position: fixed; left: 0; right: 0; bottom: 0;
   height: calc(var(--nav-h) + env(safe-area-inset-bottom));
   padding-bottom: env(safe-area-inset-bottom);
+  /* На ноуті контент обмежений 720px і центрований (.screen) — пункти
+     нав'ігації розтягнуті на всю ширину екрана виглядали б відірваними
+     від колонки, яку вони гортають. */
   display: grid; grid-template-columns: repeat(3, 1fr);
+  max-width: 720px; margin: 0 auto;
   background: var(--surface); border-top: 1px solid var(--line);
 }
 .bottomnav a {
@@ -166,8 +188,24 @@ button:disabled { opacity: .5; }
 }
 
 .field { display: flex; flex-direction: column; gap: 6px; font-size: 14px; color: var(--muted); }
+/* Заміна нативного «Choose file»: той бере лише зовнішню рамку через
+   спільні правила для input/select, а сама кнопка лишається системною
+   і випадає з решти форми, зібраної в одному візуальному стилі. */
+.filepick {
+  display: block;
+  padding: 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
 .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .ghost { background: transparent; color: var(--muted); border: 1px solid var(--line); }
+/* Незворотна дія отримує колір попередження, а не нейтральний вигляд
+   поруч зі «Скасувати» чи «Вийти з акаунта» — інакше палець не відчуває
+   різниці між службовою кнопкою і тою, що стирає товар і його історію. */
+.ghost--danger { color: var(--warn); border-color: var(--warn); }
 
 .hero { width: 100%; aspect-ratio: 4/3; object-fit: cover; border-radius: var(--radius); }
 .hero--empty {
@@ -308,14 +346,26 @@ button:disabled { opacity: .5; }
 .placeinput .link { align-self: flex-start; font-size: 13px; }
 
 .shopping__brands { list-style: none; padding: 8px 0 0 0; margin: 0; }
-.shopping__brands li { padding: 0; }
-.shopping__brands a {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 8px 12px; margin-top: 6px;
+.shopping__brands li {
+  display: flex; align-items: stretch; gap: 6px; margin-top: 6px;
+}
+.brand {
+  flex: 1;
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 8px 12px;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 10px;
-  color: var(--text); text-decoration: none; font-size: 14px;
+  color: var(--text); text-decoration: none;
+}
+.brand__name { font-size: 14px; font-weight: 600; }
+.brand__meta { font-size: 12px; color: var(--muted); }
+/* Головна дія екрана «Купити»: закриває цикл прямо тут, без заходу в картку. */
+.brand__buy {
+  width: auto; flex: 0 0 auto;
+  padding: 0 14px; min-height: 0;
+  font-size: 13px; font-weight: 600;
+  border-radius: 10px;
 }
 
 /* Головний екран: перелік потреб */
@@ -354,3 +404,5 @@ button:disabled { opacity: .5; }
   border-radius: 999px;
   margin-bottom: 4px;
 }
+
+.search { margin-bottom: 12px; }

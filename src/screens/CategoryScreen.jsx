@@ -20,6 +20,13 @@ export default function CategoryScreen() {
       <button className="back" onClick={() => navigate(-1)}>← назад</button>
       <h1>{category.name}</h1>
 
+      {group?.mixedUnits && (
+        <p className="error">
+          У цій категорії різні одиниці виміру, тому підсумок не має сенсу.
+          Зведи їх до однієї в картках товарів.
+        </p>
+      )}
+
       {group
         ? <p className={group.low ? 'error' : 'muted'}>
             Всього {formatQty(group.total, group.unit)}, сигнал на {formatQty(group.threshold, group.unit)}

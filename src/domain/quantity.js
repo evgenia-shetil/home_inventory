@@ -11,3 +11,10 @@ export function stepQty(raw, delta) {
   // (0.1 + 0.2 = 0.30000000000000004), не чіпаючи реальні дроби.
   return String(Math.round(next * 1000) / 1000)
 }
+
+// Скільки треба додати (чи відняти), щоб вийшло задане число.
+// Журнал зберігає саме зміну, а не підсумок, тож перерахунок полиці
+// перетворюється на звичайну операцію з типом «виправлення».
+export function correctionDelta(current, target) {
+  return Math.round((parseQty(target) - Number(current)) * 1000) / 1000
+}

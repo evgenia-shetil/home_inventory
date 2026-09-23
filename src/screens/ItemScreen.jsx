@@ -5,11 +5,12 @@ import { usePhotoUrl } from '../lib/photos.js'
 import { useInventory } from '../data/InventoryContext.jsx'
 import { formatQty, formatPrice } from '../lib/format.js'
 import { collectPlaces } from '../domain/places.js'
-import { parseQty } from '../domain/quantity.js'
+import { parseQty, correctionDelta } from '../domain/quantity.js'
 import QtyInput from '../ui/QtyInput.jsx'
-import CategorySelect from '../ui/CategorySelect.jsx'
 import PlaceInput from '../ui/PlaceInput.jsx'
+import CategorySelect from '../ui/CategorySelect.jsx'
 
+const UNITS = ['шт', 'кг', 'г', 'л', 'мл', 'пачка', 'рулон']
 const KIND_LABEL = { consume: 'витрата', restock: 'поповнення', correction: 'виправлення' }
 
 export default function ItemScreen() {
@@ -18,21 +19,21 @@ export default function ItemScreen() {
   const { items, categories, adjust, deleteItem, uploadPhoto, updateItem } = useInventory()
   const item = items.find(i => i.id === id)
   const places = collectPlaces(items)
-  const current = categories.find(c => c.id === item?.category_id)
-  // Обрана гілка: якщо товар у підкатегорії — показуємо і її батька.
-  const rootId = current ? (current.parent_id ?? current.id) : ''
-  const childId = current?.parent_id ? current.id : ''
-
-  const setCategory = (root, child) =>
-    updateItem(item.id, { category_id: child || root || null })
-      .catch(err => setError(err.message))
 
   const [events, setEvents] = useState([])
+  const [name, setName] = useState('')
   const [restock, setRestock] = useState({ qty: '1', price: '', place: '' })
+  const [recount, setRecount] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
+  const [note, setNote] = useState(null)
 
   const photoUrl = usePhotoUrl(item?.photo_path)
+
+  // Назва редагується локально й зберігається, коли поле втрачає фокус:
+  // писати в базу на кожну літеру немає сенсу.
+  useEffect(() => { if (item) setName(item.name) }, [item?.id, item?.name])
+  useEffect(() => { if (item) setRecount(String(item.qty)) }, [item?.id, item?.qty])
 
   useEffect(() => {
     let cancelled = false
@@ -41,13 +42,24 @@ export default function ItemScreen() {
       .order('created_at', { ascending: false }).limit(50)
       .then(({ data }) => { if (!cancelled) setEvents(data ?? []) })
     return () => { cancelled = true }
-    // Залежність саме від updated_at, а не від qty: кількість змінюється
-    // оптимістично ще до запиту, тож перезавантаження історії стартувало б
-    // раніше, ніж подія потрапить у базу. updated_at ставить сервер,
-    // тому його поява — надійна ознака, що запис уже там.
+    // updated_at ставить сервер — його поява означає, що подія вже в базі.
   }, [id, item?.updated_at])
 
   if (!item) return <p className="muted">Товар не знайдено.</p>
+
+  const current = categories.find(c => c.id === item.category_id)
+  const rootId = current ? (current.parent_id ?? current.id) : ''
+  const childId = current?.parent_id ? current.id : ''
+
+  const save = (fields, message) =>
+    updateItem(item.id, fields)
+      .then(() => { setError(null); if (message) flash(message) })
+      .catch(err => setError(err.message))
+
+  const flash = message => {
+    setNote(message)
+    setTimeout(() => setNote(null), 2500)
+  }
 
   async function handleRestock(e) {
     e.preventDefault()
@@ -59,6 +71,26 @@ export default function ItemScreen() {
         place: restock.place.trim() || null,
       })
       setRestock({ qty: '1', price: '', place: '' })
+      flash('Поповнено')
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  // Перерахунок полиці: у журнал іде саме зміна, а не підсумок,
+  // тому історія лишається правдивою — видно, що було виправлення.
+  async function handleRecount(e) {
+    e.preventDefault()
+    const delta = correctionDelta(item.qty, recount)
+    if (delta === 0) return flash('Кількість не змінилась')
+
+    setBusy(true)
+    setError(null)
+    try {
+      await adjust(item.id, delta, 'correction')
+      flash(`Виправлено на ${delta > 0 ? '+' : ''}${delta}`)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -87,7 +119,19 @@ export default function ItemScreen() {
                    }} />
           </label>}
 
-      <h1>{item.name}</h1>
+      <label className="field">
+        Назва
+        <input
+          value={name}
+          onChange={e => setName(e.target.value)}
+          onBlur={() => {
+            const next = name.trim()
+            if (next && next !== item.name) save({ name: next }, 'Назву збережено')
+            else setName(item.name)
+          }}
+        />
+      </label>
+
       <div className="qtyrow">
         <p className="card__qty">{formatQty(item.qty, item.unit)}</p>
         <button
@@ -98,6 +142,9 @@ export default function ItemScreen() {
           −1
         </button>
       </div>
+
+      {note && <p className="muted">{note}</p>}
+      {error && <p className="error">{error}</p>}
 
       <dl className="facts">
         <dt>Ціна за одиницю</dt><dd>{formatPrice(item.last_price)}</dd>
@@ -110,23 +157,42 @@ export default function ItemScreen() {
         </dd>
       </dl>
 
-      <h2>Категорія</h2>
       <div className="row">
-        <div className="field">
+        <label className="field">
           Категорія
-          <CategorySelect value={rootId} onChange={id => setCategory(id, '')} />
-        </div>
-        <div className="field">
+          <CategorySelect
+            value={rootId}
+            onChange={cat => save({ category_id: cat || null })}
+          />
+        </label>
+        <label className="field">
           Підкатегорія
           <CategorySelect
             value={childId}
             parentId={rootId || null}
             disabled={!rootId}
             emptyLabel={rootId ? 'не обрано' : 'спершу обери категорію'}
-            onChange={id => setCategory(rootId, id)}
+            onChange={cat => save({ category_id: cat || rootId || null })}
           />
-        </div>
+        </label>
       </div>
+
+      <label className="field">
+        Одиниця виміру
+        <select value={item.unit} onChange={e => save({ unit: e.target.value }, 'Одиницю змінено')}>
+          {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+        </select>
+      </label>
+
+      <form onSubmit={handleRecount} className="stack">
+        <h2>Перерахувати</h2>
+        <p className="muted">
+          Порахувала полицю й число не збіглось — впиши, скільки насправді.
+          У журналі зʼявиться виправлення.
+        </p>
+        <QtyInput value={recount} onChange={setRecount} unit={item.unit} />
+        <button type="submit" className="ghost" disabled={busy}>Виправити кількість</button>
+      </form>
 
       <form onSubmit={handleRestock} className="stack">
         <h2>Поповнити</h2>
@@ -145,16 +211,15 @@ export default function ItemScreen() {
                    value={restock.price}
                    onChange={e => setRestock(r => ({ ...r, price: e.target.value }))} />
           </label>
-          <div className="field">
+          <label className="field">
             Де куплено
             <PlaceInput
               value={restock.place}
               places={places}
               onChange={v => setRestock(r => ({ ...r, place: v }))}
             />
-          </div>
+          </label>
         </div>
-        {error && <p className="error">{error}</p>}
         <button type="submit" disabled={busy}>{busy ? 'Зберігаю…' : 'Поповнити'}</button>
       </form>
 
@@ -165,7 +230,11 @@ export default function ItemScreen() {
             {events.map(e => (
               <li key={e.id}>
                 <span>{Number(e.delta) > 0 ? `+${e.delta}` : e.delta}</span>
-                <span className="muted">{KIND_LABEL[e.kind]}</span>
+                <span className="muted">
+                  {KIND_LABEL[e.kind]}
+                  {e.price !== null && e.price !== undefined && ` · ${formatPrice(e.price)}`}
+                  {e.place && ` · ${e.place}`}
+                </span>
                 <span className="muted">
                   {new Date(e.created_at).toLocaleDateString('uk-UA', {
                     day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
@@ -175,7 +244,7 @@ export default function ItemScreen() {
             ))}
           </ul>}
 
-      <button className="ghost" onClick={handleDelete}>Видалити товар</button>
+      <button className="ghost ghost--danger" onClick={handleDelete}>Видалити товар</button>
     </div>
   )
 }
