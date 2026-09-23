@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useInventory } from '../data/InventoryContext.jsx'
 import { parseQty } from '../domain/quantity.js'
@@ -52,11 +52,19 @@ export default function CategoriesScreen() {
   const thresholdValue = category =>
     drafts[category.id] ?? String(category.threshold ?? 1)
 
+  // Зберігаємо не на кожен дотик, а коли людина зупинилась: інакше
+  // перемальовування після запису зʼїдає наступне натискання стрілки.
+  const timers = useRef({})
+  useEffect(() => () => Object.values(timers.current).forEach(clearTimeout), [])
+
   const saveThreshold = (category, raw) => {
-    const next = parseQty(raw ?? thresholdValue(category))
-    setDrafts(d => { const copy = { ...d }; delete copy[category.id]; return copy })
-    if (next === Number(category.threshold)) return
-    run(() => updateCategory(category.id, { threshold: next }))
+    clearTimeout(timers.current[category.id])
+    timers.current[category.id] = setTimeout(() => {
+      const next = parseQty(raw)
+      setDrafts(d => { const copy = { ...d }; delete copy[category.id]; return copy })
+      if (next === Number(category.threshold)) return
+      updateCategory(category.id, { threshold: next }).catch(err => setError(err.message))
+    }, 700)
   }
 
   const row = (category, isRoot) => (
