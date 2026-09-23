@@ -14,6 +14,7 @@ import CategoryScreen from './screens/CategoryScreen.jsx'
 import SpendingScreen from './screens/SpendingScreen.jsx'
 import BottomNav from './ui/BottomNav.jsx'
 import Toast from './ui/Toast.jsx'
+import UpdateWatcher from './ui/UpdateWatcher.jsx'
 import NetworkBanner from './ui/NetworkBanner.jsx'
 
 export default function App() {
@@ -47,6 +48,7 @@ export default function App() {
       </main>
       <NetworkBanner />
       <Toast />
+      <UpdateWatcher />
       <BottomNav />
     </InventoryProvider>
   )

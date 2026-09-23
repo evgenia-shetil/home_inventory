@@ -26,6 +26,7 @@ export default [
         setTimeout: 'readonly', clearTimeout: 'readonly', process: 'readonly',
         requestAnimationFrame: 'readonly', createImageBitmap: 'readonly',
         File: 'readonly', Blob: 'readonly', confirm: 'readonly', Intl: 'readonly',
+        __BUILD_ID__: 'readonly',
       },
     },
     plugins: { 'react-hooks': reactHooks },

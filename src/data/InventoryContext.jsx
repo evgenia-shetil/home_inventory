@@ -74,7 +74,13 @@ export function InventoryProvider({ userId, children }) {
   }, [online, status, reload])
 
   const notify = useCallback((text, options = {}) => {
-    setNotice({ text, tone: options.tone ?? 'info', undo: options.undo ?? null, at: Date.now() })
+    setNotice({
+      text,
+      tone: options.tone ?? 'info',
+      undo: options.undo ?? null,
+      actionLabel: options.actionLabel ?? null,
+      at: Date.now(),
+    })
   }, [])
 
   const dismissNotice = useCallback(() => setNotice(null), [])

@@ -29,7 +29,7 @@ export default function Toast() {
     <div className={`toast toast--${notice.tone}`} role="status">
       <span>{notice.text}</span>
       {notice.undo
-        ? <button onClick={undo}>Скасувати</button>
+        ? <button onClick={undo}>{notice.actionLabel ?? 'Скасувати'}</button>
         : <button onClick={dismissNotice} aria-label="Закрити повідомлення">×</button>}
     </div>
   )
