@@ -121,7 +121,7 @@ button:disabled { opacity: .5; }
   position: fixed; left: 0; right: 0; bottom: 0;
   height: calc(var(--nav-h) + env(safe-area-inset-bottom));
   padding-bottom: env(safe-area-inset-bottom);
-  display: grid; grid-template-columns: 1fr 1fr;
+  display: grid; grid-template-columns: repeat(3, 1fr);
   background: var(--surface); border-top: 1px solid var(--line);
 }
 .bottomnav a {
@@ -181,3 +181,13 @@ button:disabled { opacity: .5; }
 .shopping__name { margin: 0 0 2px; font-weight: 600; }
 .shopping .muted { margin: 0; font-size: 14px; }
 .shopping button { width: auto; padding: 10px 16px; min-height: 0; }
+
+.link {
+  background: transparent;
+  color: var(--muted);
+  border: none;
+  min-height: 0;
+  padding: 8px;
+  font-weight: 500;
+  text-decoration: underline;
+}
