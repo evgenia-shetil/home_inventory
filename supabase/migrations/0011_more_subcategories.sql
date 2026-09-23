@@ -25,9 +25,11 @@ as $$
     ('побут','лампочки',1),     ('побут','батарейки',2),   ('побут','фільтри',3);
 $$;
 
--- Нова головна категорія для побутових витратних матеріалів
+-- Нова головна категорія для побутових витратних матеріалів.
+-- null тут треба привести до uuid явно: у списку select Postgres
+-- вважає нетипізований null текстом і відмовляється його вставляти.
 insert into public.categories (user_id, name, sort_order, parent_id)
-select distinct user_id, 'побут', 5, null from public.categories
+select distinct user_id, 'побут', 5, null::uuid from public.categories
 on conflict do nothing;
 
 -- Дозаповнення всіх бракуючих підкатегорій наявним акаунтам
