@@ -16,7 +16,7 @@ PWA для обліку домашніх запасів. Одна користу
 Браузер (React SPA, PWA) → supabase-js → Supabase
                                           ├── Postgres (categories, items, events + RPC)
                                           ├── Storage (приватний бакет photos)
-                                          └── Auth (magic link)
+                                          └── Auth (пароль, magic link запасний)
 ```
 
 Наслідок: **жодна логіка на клієнті не є довіреною.** Усі правила цілісності
