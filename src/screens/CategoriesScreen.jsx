@@ -14,6 +14,7 @@ export default function CategoriesScreen() {
   const [newRoot, setNewRoot] = useState('')
   const [newChild, setNewChild] = useState({})
   const [drafts, setDrafts] = useState({})
+  const [targets, setTargets] = useState({})
 
   const roots = categories.filter(c => !c.parent_id)
   const childrenOf = id => categories.filter(c => c.parent_id === id)
@@ -53,6 +54,24 @@ export default function CategoriesScreen() {
   const thresholdValue = category =>
     drafts[category.id] ?? String(category.threshold ?? 1)
 
+  // Ціль необовʼязкова: без неї список покупок просто не називає кількість.
+  const targetValue = category =>
+    targets[category.id] ?? String(category.target ?? '')
+
+  const saveTarget = (category, raw) => {
+    clearTimeout(timers.current['t' + category.id])
+    timers.current['t' + category.id] = setTimeout(() => {
+      const next = raw === '' ? null : parseQty(raw)
+      setTargets(d => { const copy = { ...d }; delete copy[category.id]; return copy })
+      if (String(next ?? '') === String(category.target ?? '')) return
+      updateCategory(category.id, { target: next })
+        .then(() => notify(next === null
+          ? `Ціль для «${category.name}» прибрано`
+          : `Мати після покупки: ${next}`))
+        .catch(err => notify(err.message, { tone: 'error' }))
+    }, 700)
+  }
+
   // Зберігаємо не на кожен дотик, а коли людина зупинилась: інакше
   // перемальовування після запису зʼїдає наступне натискання стрілки.
   const timers = useRef({})
@@ -87,14 +106,26 @@ export default function CategoriesScreen() {
           <IconTrash />
         </button>
       </div>
-      {!isRoot && <div className="cat__threshold">
-        <span className="muted">сигнал, коли всього лишиться</span>
-        <QtyInput
-          value={thresholdValue(category)}
-          onChange={v => setDrafts(d => ({ ...d, [category.id]: v }))}
-          onCommit={v => saveThreshold(category, v)}
-        />
-      </div>}
+      {!isRoot && (
+        <div className="cat__numbers">
+          <div className="cat__threshold">
+            <span className="muted">сигнал, коли всього лишиться</span>
+            <QtyInput
+              value={thresholdValue(category)}
+              onChange={v => setDrafts(d => ({ ...d, [category.id]: v }))}
+              onCommit={v => saveThreshold(category, v)}
+            />
+          </div>
+          <div className="cat__threshold">
+            <span className="muted">скільки мати після покупки</span>
+            <QtyInput
+              value={targetValue(category)}
+              onChange={v => setTargets(d => ({ ...d, [category.id]: v }))}
+              onCommit={v => saveTarget(category, v)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 
@@ -108,6 +139,11 @@ export default function CategoriesScreen() {
           Сигнал задається на підкатегорії й рахується на всі товари в ній разом:
           якщо зубних щіток чотири різні марки, сигнал прийде, коли їх сумарно
           лишиться стільки, скільки тут вказано.
+        </p>
+        <p>
+          Друге число — скільки мати після покупки. Воно відповідає на інше
+          питання: не «коли повідомити», а «скільки брати». Якщо лишити
+          порожнім, список покупок просто не називатиме кількість.
         </p>
         <p>
           Головна категорія — лише папка, власного сигналу вона не має.

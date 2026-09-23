@@ -11,6 +11,7 @@ import SettingsScreen from './screens/SettingsScreen.jsx'
 import ScanScreen from './screens/ScanScreen.jsx'
 import CategoriesScreen from './screens/CategoriesScreen.jsx'
 import CategoryScreen from './screens/CategoryScreen.jsx'
+import SpendingScreen from './screens/SpendingScreen.jsx'
 import BottomNav from './ui/BottomNav.jsx'
 import Toast from './ui/Toast.jsx'
 import NetworkBanner from './ui/NetworkBanner.jsx'
@@ -39,6 +40,7 @@ export default function App() {
           <Route path="/scan" element={<ScanScreen />} />
           <Route path="/categories" element={<CategoriesScreen />} />
           <Route path="/category/:id" element={<CategoryScreen />} />
+          <Route path="/spending" element={<SpendingScreen />} />
           <Route path="/item/:id" element={<ItemScreen />} />
           <Route path="/settings" element={<SettingsScreen email={session.user.email} />} />
         </Routes>

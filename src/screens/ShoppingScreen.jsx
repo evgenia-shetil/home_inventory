@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useInventory } from '../data/InventoryContext.jsx'
 import { groupItems } from '../domain/groups.js'
+import { shoppingGroups, toBuy } from '../domain/needs.js'
 import { estimateCost } from '../domain/cost.js'
 import { formatQty, formatPrice } from '../lib/format.js'
 import { plural } from '../lib/plural.js'
@@ -16,7 +17,7 @@ export default function ShoppingScreen() {
 
   // Список покупок — перелік потреб, а не марок: у магазин ідеш
   // по зубну щітку, а не саме по Colgate.
-  const low = groupItems(items, categories).filter(g => g.low)
+  const low = shoppingGroups(groupItems(items, categories))
 
   if (low.length === 0) {
     return <Empty title="Усе на місці — купувати нічого" />
@@ -63,7 +64,11 @@ export default function ShoppingScreen() {
                 категорією, вона каже чого бракує, а товар — якої марки. */}
             {group.categoryId && <p className="shopping__name">{group.name}</p>}
             <p className="muted">
-              лишилось {formatQty(group.total, group.unit)}, поріг {formatQty(group.threshold, group.unit)}
+              лишилось {formatQty(group.total, group.unit)}
+              {group.inUse > 0 && ` (${formatQty(group.inUse, group.unit)} у користуванні)`}
+              {toBuy(group) !== null
+                ? ` · взяти ${formatQty(toBuy(group), group.unit)}`
+                : `, поріг ${formatQty(group.threshold, group.unit)}`}
             </p>
 
             <ul className="shopping__brands">

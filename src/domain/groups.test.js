@@ -53,12 +53,25 @@ describe('groupItems', () => {
     expect(groups[0].name).toBe('тіло · без підкатегорії')
   })
 
-  it('сортує за терміновістю: найближче до порога попереду', () => {
+  it('ставить попереду те, що потребує уваги, далі — сталий порядок', () => {
     const groups = groupItems([
-      item('1', 'щітка', 10, 'c1'),   // 10 / 2 = 5
-      item('2', 'шампунь', 1, 'c2'),  // 1 / 1 = 1
+      item('1', 'щітка', 10, 'c1'),   // запасу вдосталь
+      item('2', 'шампунь', 1, 'c2'),  // на межі
     ], cats)
     expect(groups.map(g => g.name)).toEqual(['шампунь', 'зубні щітки'])
+  })
+
+  it('порядок не перемішується, поки стан не змінився', () => {
+    const many = [
+      item('1', 'a', 9, 'c1'), item('2', 'b', 3, 'c1'),
+    ]
+    const cats2 = [
+      { id: 'c1', name: 'алое', parent_id: null, threshold: 1 },
+      { id: 'c2', name: 'банан', parent_id: null, threshold: 1 },
+    ]
+    const first = groupItems([{ ...many[0], category_id: 'c1' }, { id: '3', name: 'c', qty: 5, category_id: 'c2', unit: 'шт' }], cats2)
+    const after = groupItems([{ ...many[0], qty: 4, category_id: 'c1' }, { id: '3', name: 'c', qty: 5, category_id: 'c2', unit: 'шт' }], cats2)
+    expect(first.map(g => g.name)).toEqual(after.map(g => g.name))
   })
 
   it('не ділить на нуль при нульовому порозі', () => {

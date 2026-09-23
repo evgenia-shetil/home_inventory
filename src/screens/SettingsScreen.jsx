@@ -67,6 +67,9 @@ export default function SettingsScreen({ email }) {
       <h1>Ще</h1>
       <p className="muted">Ти увійшла як {email}</p>
 
+      <h2>Витрати</h2>
+      <Link to="/spending"><button type="button" className="ghost">Скільки витрачено</button></Link>
+
       <h2>Категорії</h2>
       <Link to="/categories"><button type="button" className="ghost">Керувати категоріями</button></Link>
 

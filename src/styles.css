@@ -123,7 +123,11 @@ button:disabled { opacity: .5; }
 
 .card__link { text-decoration: none; color: inherit; padding: 6px; flex: 1; display: block; }
 .card__photo { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; display: block; }
-.card__photo--empty { background: var(--line); }
+.card__photo--letter {
+  background: var(--tint);
+  display: grid; place-items: center;
+  font-size: 30px; font-weight: 700; color: rgba(0,0,0,.45);
+}
 .card__name {
   font-size: 13px; font-weight: 600; margin: 5px 0 1px; line-height: 1.25;
   /* Довгі назви з каталогів не мають розтягувати картку на пів екрана. */
@@ -559,3 +563,32 @@ details.edit .stack { gap: 12px; }
   display: flex; gap: 8px; align-items: center;
   font-size: 14px; color: var(--muted);
 }
+
+/* Смужки замість графіка: на телефоні вони читаються одним поглядом
+   і не тягнуть за собою бібліотеку. */
+.bars { list-style: none; padding: 0; margin: 0; }
+.bars li {
+  position: relative;
+  display: flex; justify-content: space-between; gap: 12px;
+  padding: 12px; margin-bottom: 6px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.bars__label, .bars__value { position: relative; z-index: 1; }
+.bars__value { font-weight: 700; flex: 0 0 auto; }
+.bars__fill {
+  position: absolute; left: 0; top: 0; bottom: 0;
+  background: var(--accent);
+  opacity: .14;
+}
+
+.switch { display: flex; gap: 10px; align-items: flex-start; font-size: 15px; }
+.switch input { width: 22px; height: 22px; flex: 0 0 22px; margin-top: 2px; }
+.switch small { display: block; font-size: 13px; margin-top: 2px; }
+
+.cat__numbers { display: flex; flex-direction: column; gap: 12px; }
+
+.recent { margin-bottom: 16px; }
+.recent__title { font-size: 14px; color: var(--muted); margin: 0 0 8px; }

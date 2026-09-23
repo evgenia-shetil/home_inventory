@@ -10,6 +10,7 @@ export default function ScanScreen() {
   const [params] = useSearchParams()
   const attachTo = params.get('attach')
   const [warning, setWarning] = useState(null)
+  const [unknown, setUnknown] = useState(null)
 
   const handleDetect = useCallback(async raw => {
     const code = normalizeBarcode(raw)
@@ -43,8 +44,28 @@ export default function ScanScreen() {
       return
     }
 
-    navigate(`/add?barcode=${code}`, { replace: true })
+    // У магазині сканують, щоб дізнатись «чи є це вдома». Одразу
+    // відкривати форму додавання означає відповідати на інше питання
+    // і заводити речі, які ще не куплені.
+    setUnknown(code)
   }, [items, attachTo, updateItem, navigate])
+
+  if (unknown) {
+    return (
+      <div className="stack">
+        <h1>Такого в тебе немає</h1>
+        <p className="muted">
+          Штрихкод {unknown} не знайдено серед твоїх запасів.
+          Якщо ти просто перевіряла в магазині — можна нічого не робити.
+        </p>
+        <button onClick={() => navigate(`/add?barcode=${unknown}`, { replace: true })}>
+          Завести цей товар
+        </button>
+        <button className="ghost" onClick={() => setUnknown(null)}>Сканувати ще</button>
+        <button className="ghost" onClick={() => navigate('/')}>Готово</button>
+      </div>
+    )
+  }
 
   return (
     <div className="stack">

@@ -28,9 +28,11 @@ export function groupItems(items = [], categories = []) {
     const threshold = Number(
       category?.parent_id ? category.threshold : item.threshold
     )
+    // Ціль задається лише на підкатегорії, як і поріг.
+    const target = category?.parent_id ? category.target : null
 
     const group = groups.get(key) ?? {
-      key, name, threshold,
+      key, name, threshold, target,
       categoryId: category?.id ?? null,
       unit: item.unit,
       total: 0,
@@ -62,5 +64,9 @@ export function groupItems(items = [], categories = []) {
       low: group.total <= group.threshold,
       urgency: group.total / (group.threshold > 0 ? group.threshold : 1),
     }))
-    .sort((a, b) => a.urgency - b.urgency || a.name.localeCompare(b.name, 'uk'))
+    // Спершу те, що потребує уваги, далі стало за абеткою. Сортування
+    // суто за терміновістю перемішувало список після кожної витрати,
+    // і речі щодня опинялись на новому місці.
+    .sort((a, b) =>
+      (a.low === b.low ? 0 : a.low ? -1 : 1) || a.name.localeCompare(b.name, 'uk'))
 }

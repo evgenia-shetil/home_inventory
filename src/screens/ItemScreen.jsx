@@ -245,6 +245,21 @@ export default function ItemScreen() {
             </div>
           </div>
 
+          <label className="switch">
+            <input
+              type="checkbox"
+              checked={item.recurring !== false}
+              onChange={e => save({ recurring: e.target.checked },
+                e.target.checked ? 'Буде у списку покупок' : 'Прибрано зі списку покупок')}
+            />
+            <span>
+              Поповнювати, коли скінчиться
+              <small className="muted">
+                Разові речі краще вимкнути — інакше вони назавжди оселяться у «Купити»
+              </small>
+            </span>
+          </label>
+
           <label className="field">
             Одиниця виміру
             <select value={item.unit} onChange={e => save({ unit: e.target.value }, 'Одиницю змінено')}>
