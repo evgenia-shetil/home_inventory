@@ -48,13 +48,24 @@ export default function StockScreen() {
 
   return (
     <>
-      <input
-        className="search"
-        type="search"
-        value={query}
-        placeholder="знайти товар"
-        onChange={e => setQuery(e.target.value)}
-      />
+      <div className="search">
+        <input
+          type="search"
+          value={query}
+          placeholder="знайти товар"
+          onChange={e => setQuery(e.target.value)}
+        />
+        {query && (
+          <button type="button" className="search__clear" onClick={() => setQuery('')}
+                  aria-label="Очистити пошук">×</button>
+        )}
+      </div>
+
+      {found && (
+        <p className="muted">
+          {found.length} {plural(found.length, 'збіг', 'збіги', 'збігів')}
+        </p>
+      )}
 
       {found && (
         found.length

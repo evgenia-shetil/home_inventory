@@ -139,6 +139,7 @@ export default function AddItemScreen() {
 
   return (
     <form onSubmit={handleSubmit} className="stack">
+      <button type="button" className="back" onClick={() => navigate(-1)}>← назад</button>
       <h1>Новий товар</h1>
 
       {barcode && (
