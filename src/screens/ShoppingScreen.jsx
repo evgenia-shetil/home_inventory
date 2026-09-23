@@ -23,7 +23,7 @@ export default function ShoppingScreen() {
       <h1>Купити</h1>
       <ul className="shopping">
         {low.map(group => (
-          <li key={group.key} className="shopping__group">
+          <li key={group.key}>
             <p className="shopping__name">{group.name}</p>
             <p className="muted">
               лишилось {formatQty(group.total, group.unit)}, поріг {formatQty(group.threshold, group.unit)}
@@ -32,7 +32,8 @@ export default function ShoppingScreen() {
               {group.items.map(item => (
                 <li key={item.id}>
                   <Link to={`/item/${item.id}`}>
-                    {item.name} — {formatQty(item.qty, item.unit)}
+                    <span>{item.name}</span>
+                    <b>{formatQty(item.qty, item.unit)}</b>
                   </Link>
                 </li>
               ))}

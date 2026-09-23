@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useInventory } from '../data/InventoryContext.jsx'
 import { groupItems } from '../domain/groups.js'
 import { formatQty } from '../lib/format.js'
+import { plural } from '../lib/plural.js'
 import CategoryStrip from '../ui/CategoryStrip.jsx'
 import { Skeleton, Empty, ErrorState } from '../ui/States.jsx'
 import ScanIcon from '../ui/ScanIcon.jsx'
@@ -53,7 +54,7 @@ export default function StockScreen() {
               <span className="group__meta">
                 <b>{formatQty(group.total, group.unit)}</b>
                 {group.categoryId && group.items.length > 1 && (
-                  <span className="muted"> · {group.items.length} марок</span>
+                  <span className="muted"> · {group.items.length} {plural(group.items.length, 'марка', 'марки', 'марок')}</span>
                 )}
               </span>
             </Link>

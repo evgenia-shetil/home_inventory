@@ -184,13 +184,13 @@ button:disabled { opacity: .5; }
 }
 
 .shopping { list-style: none; padding: 0; margin: 0; }
-.shopping li {
-  display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  padding: 14px 0; border-bottom: 1px solid var(--line);
+.shopping > li {
+  display: block;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
 }
-.shopping__name { margin: 0 0 2px; font-weight: 600; }
-.shopping .muted { margin: 0; font-size: 14px; }
-.shopping button { width: auto; padding: 10px 16px; min-height: 0; }
+.shopping__name { margin: 0; font-weight: 700; font-size: 17px; }
+.shopping .muted { margin: 2px 0 0; font-size: 13px; }
 
 .link {
   background: transparent;
@@ -307,10 +307,16 @@ button:disabled { opacity: .5; }
 .placeinput { display: flex; flex-direction: column; gap: 4px; }
 .placeinput .link { align-self: flex-start; font-size: 13px; }
 
-.shopping__group { display: block; }
 .shopping__brands { list-style: none; padding: 8px 0 0 0; margin: 0; }
-.shopping__brands li { padding: 4px 0; }
-.shopping__brands a { color: var(--text); text-decoration: none; font-size: 15px; }
+.shopping__brands li { padding: 0; }
+.shopping__brands a {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 12px; margin-top: 6px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--text); text-decoration: none; font-size: 14px;
+}
 
 /* Головний екран: перелік потреб */
 .groups { list-style: none; padding: 0; margin: 0; }
