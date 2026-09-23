@@ -5,7 +5,6 @@ import { groupItems } from '../domain/groups.js'
 import { shoppingGroups, toBuy } from '../domain/needs.js'
 import { estimateCost } from '../domain/cost.js'
 import { formatQty, formatPrice } from '../lib/format.js'
-import { plural } from '../lib/plural.js'
 import { Skeleton, Empty, ErrorState } from '../ui/States.jsx'
 
 export default function ShoppingScreen() {
@@ -39,11 +38,24 @@ export default function ShoppingScreen() {
   return (
     <>
       <h1>Купити</h1>
-      <p className="muted">
-        {low.length} {plural(low.length, 'потреба', 'потреби', 'потреб')}
-        {cost.known > 0 && ` · орієнтовно ${formatPrice(cost.total)} за одну одиницю кожного`}
-        {cost.unknown > 0 && ` (для ${cost.unknown} ціна невідома)`}
-      </p>
+      <dl className="summary">
+        <div>
+          <dt>Потреб</dt>
+          <dd className="num">{low.length}</dd>
+        </div>
+        {cost.known > 0 && (
+          <div>
+            <dt>Орієнтовно</dt>
+            <dd className="num">{formatPrice(cost.total)}</dd>
+          </div>
+        )}
+        {cost.unknown > 0 && (
+          <div>
+            <dt>Без ціни</dt>
+            <dd className="num">{cost.unknown}</dd>
+          </div>
+        )}
+      </dl>
 
       {cost.known > 0 && (
         <details className="info">
@@ -77,9 +89,11 @@ export default function ShoppingScreen() {
                   <Link to={`/item/${item.id}`} className="brand">
                     <span className="brand__name">{item.name}</span>
                     <span className="brand__meta">
-                      {formatQty(item.qty, item.unit)}
-                      {item.last_price !== null && ` · ${formatPrice(item.last_price)}`}
-                      {item.last_place && ` · ${item.last_place}`}
+                      <b className="num">{formatQty(item.qty, item.unit)}</b>
+                      {item.last_price !== null && (
+                        <span className="num">{formatPrice(item.last_price)}</span>
+                      )}
+                      {item.last_place && <span>{item.last_place}</span>}
                     </span>
                   </Link>
                   <button

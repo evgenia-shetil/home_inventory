@@ -4,7 +4,7 @@ import { useInventory } from '../data/InventoryContext.jsx'
 import { groupItems } from '../domain/groups.js'
 import { searchItems } from '../domain/search.js'
 import ItemCard from '../ui/ItemCard.jsx'
-import { formatQty } from '../lib/format.js'
+import Qty from '../ui/Qty.jsx'
 import { plural } from '../lib/plural.js'
 import CategoryStrip from '../ui/CategoryStrip.jsx'
 import { Skeleton, Empty, ErrorState } from '../ui/States.jsx'
@@ -144,9 +144,11 @@ export default function StockScreen() {
             >
               <span className="group__name">{group.name}</span>
               <span className="group__meta">
-                <b>{formatQty(group.total, group.unit)}</b>
+                <Qty value={group.total} unit={group.unit} />
                 {group.categoryId && group.items.length > 1 && (
-                  <span className="muted"> · {group.items.length} {plural(group.items.length, 'товар', 'товари', 'товарів')}</span>
+                  <span className="group__count">
+                    {group.items.length} {plural(group.items.length, 'товар', 'товари', 'товарів')}
+                  </span>
                 )}
               </span>
             </Link>

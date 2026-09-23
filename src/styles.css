@@ -1,53 +1,51 @@
 :root {
-  --bg: #faf9f7;
+  /* Нейтральні виведені з синього, а не з теплого кремового: акцент
+     має бути рідним для палітри, а не накладеним на чужий відтінок. */
+  --bg: #eef1f5;
   --surface: #ffffff;
-  --text: #1c1b1a;
-  /* 4.93:1 на тлі — попередній #7a7570 давав 4.33 і не проходив AA
-     для дрібного тексту, яким набрано майже все другорядне. */
-  --muted: #726c66;
-  --line: #e7e3de;
-  /* Межа полів вводу мусить бути помітною: 3.22:1 на білому.
-     Декоративні межі карток лишаються тонкими. */
-  --line-strong: #978e83;
-  /* Синій — дія. Зелений лишений виключно для підтверджень,
-     щоб він щось означав, а не просто фарбував кнопки. */
-  --accent: #2b5fa8;
-  --success: #2f6d5b;
-  --warn: #b4531f;
+  --text: #161d26;
+  --muted: #5c6672;
+  --line: #dde3ea;
+  --line-strong: #828b98;
 
-  /* Колір тексту ПОВЕРХ заливок. Окремими токенами, бо в темній темі
-     заливки світлішають і білий напис на них провалює контраст. */
+  --accent: #1f5fa9;
+  --success: #2f6d5b;
+  --warn: #a8451c;
+
   --on-accent: #ffffff;
   --on-success: #ffffff;
   --on-warn: #ffffff;
-  --invert-bg: #1c1b1a;
+  --invert-bg: #161d26;
   --invert-fg: #ffffff;
 
-  --radius: 14px;
+  /* Радіус не однаковий на всьому: керування, обʼєкти й зображення —
+     різні за природою речі. Список узагалі не має бути коробкою. */
+  --radius: 12px;
+  --radius-control: 8px;
   --nav-h: 60px;
 }
 
-/* Темна тема — не інверсія, а власний набір значень: кожна пара
-   перевірена на контраст окремо. */
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #1a1917;
-    --surface: #232220;
-    --text: #f2efe9;
-    --muted: #a69d92;
-    --line: #34322e;
-    --line-strong: #7a736a;
+    --bg: #12171d;
+    --surface: #1a212a;
+    --text: #e7edf4;
+    --muted: #9aa6b4;
+    --line: #28313c;
+    --line-strong: #6e7a88;
+
     --accent: #6fa8dc;
     --success: #4e9c81;
     --warn: #e08a5a;
 
-    --on-accent: #17161a;
-    --on-success: #17161a;
-    --on-warn: #17161a;
-    --invert-bg: #f2efe9;
-    --invert-fg: #17161a;
+    --on-accent: #12171d;
+    --on-success: #12171d;
+    --on-warn: #12171d;
+    --invert-bg: #e7edf4;
+    --invert-fg: #12171d;
   }
 }
+
 
 * { box-sizing: border-box; }
 
@@ -59,15 +57,28 @@
   border-radius: 6px;
 }
 
-h1 { font-size: 26px; line-height: 1.15; margin: 4px 0 12px; }
-h2 { font-size: 18px; line-height: 1.2; margin: 20px 0 4px; }
-
 body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font: 16px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font: 400 16px/1.45 'Commissioner', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+h1 {
+  font-size: 25px; font-weight: 700; line-height: 1.1;
+  letter-spacing: -0.02em; margin: 4px 0 12px;
+}
+h2 {
+  font-size: 17px; font-weight: 650; line-height: 1.2;
+  letter-spacing: -0.01em; margin: 20px 0 4px;
+}
+
+/* У застосунку про облік цифра є змістом, а назва — підписом.
+   Табличні цифри вирівнюються стовпчиком по всьому списку. */
+.num, .qty__num, .bars__value {
+  font-variant-numeric: tabular-nums lining-nums;
+  letter-spacing: -0.01em;
 }
 
 .screen {
@@ -89,7 +100,7 @@ body {
 input, select, button, textarea {
   font: inherit;
   padding: 14px;
-  border-radius: var(--radius);
+  border-radius: var(--radius-control);
   border: 1px solid var(--line-strong);
   background: var(--surface);
   color: var(--text);
@@ -128,21 +139,23 @@ button:disabled { opacity: .5; }
 .card--low { border-color: var(--warn); }
 
 .card__link { text-decoration: none; color: inherit; padding: 6px; flex: 1; display: block; }
-.card__photo { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; display: block; }
+.card__photo { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 6px; display: block; }
 .card__photo--letter {
   background: var(--tint);
   display: grid; place-items: center;
   font-size: 30px; font-weight: 700; color: rgba(0,0,0,.45);
 }
 .card__name {
-  font-size: 13px; font-weight: 600; margin: 5px 0 1px; line-height: 1.25;
+  font-size: 12.5px; font-weight: 500; color: var(--muted); margin: 5px 0 1px; line-height: 1.25;
   /* Довгі назви з каталогів не мають розтягувати картку на пів екрана. */
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
   overflow: hidden;
   /* Назви з каталогів бувають одним довгим словом без пробілів. */
   overflow-wrap: anywhere;
 }
-.card__qty { margin: 0; font-size: 15px; font-weight: 700; }
+.card__qty { margin: 0; }
+.card__qty .qty__num { font-size: 17px; }
+.card__qty .qty__unit { font-size: 11px; }
 
 /* Ціль лишається на всю ширину картки: висоту зменшено до межі,
    за якою в неї вже важко влучити пальцем не дивлячись. */
@@ -435,7 +448,11 @@ button:disabled { opacity: .5; }
   color: var(--text); text-decoration: none;
 }
 .brand__name { font-size: 14px; font-weight: 600; }
-.brand__meta { font-size: 12px; color: var(--muted); }
+.brand__meta {
+  display: flex; gap: 12px; align-items: baseline;
+  font-size: 12.5px; color: var(--muted);
+}
+.brand__meta b { color: var(--text); font-weight: 650; font-size: 14px; }
 /* Головна дія екрана «Купити»: закриває цикл прямо тут, без заходу в картку. */
 .brand__buy {
   width: auto; flex: 0 0 auto;
@@ -445,20 +462,38 @@ button:disabled { opacity: .5; }
 }
 
 /* Головний екран: перелік потреб */
-.groups { list-style: none; padding: 0; margin: 0; }
-.groups li { margin-bottom: 8px; }
-.group {
-  display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  padding: 14px 16px;
+.groups {
+  list-style: none; padding: 0; margin: 0;
   background: var(--surface);
-  border: 1px solid var(--line);
   border-radius: var(--radius);
+  overflow: hidden;
+}
+.groups li + li { border-top: 1px solid var(--line); }
+
+/* Рядок відомості, а не картка: список — це список, а не набір обʼєктів. */
+.group {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 16px;
+  padding: 15px 16px;
   text-decoration: none; color: inherit;
 }
-.group--low { border-color: var(--warn); }
+
+/* Кольорова смуга з краю — мова полицевих ярликів, а не ще одна рамка. */
+.group--low { box-shadow: inset 3px 0 0 var(--warn); }
 .group--low .group__meta b { color: var(--warn); }
-.group__name { font-weight: 600; }
-.group__meta { flex: 0 0 auto; font-size: 15px; }
+
+.group__name { font-weight: 550; letter-spacing: -0.005em; }
+.group__meta {
+  flex: 0 0 auto;
+  display: flex; align-items: baseline; gap: 10px;
+}
+.group__count { font-size: 12.5px; color: var(--muted); }
+
+/* Число — головне, одиниця — підпис. Різниця в розмірі та вазі
+   робить стовпчик кількостей читабельним одним поглядом. */
+.qty { display: inline-flex; align-items: baseline; gap: 4px; }
+.qty__num { font-size: 19px; font-weight: 650; }
+.qty__unit { font-size: 12px; font-weight: 450; color: var(--muted); }
+.group--low .qty__num { color: var(--warn); }
 
 .newcat { display: flex; flex-direction: column; gap: 4px; }
 .newcat__row { display: flex; gap: 6px; }
@@ -575,12 +610,12 @@ details.edit .stack { gap: 12px; }
 .bars li {
   position: relative;
   display: flex; justify-content: space-between; gap: 12px;
-  padding: 12px; margin-bottom: 6px;
+  padding: 13px 14px;
   background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 10px;
   overflow: hidden;
 }
+.bars li + li { border-top: 1px solid var(--line); }
+.bars { border-radius: var(--radius); overflow: hidden; }
 .bars__label, .bars__value { position: relative; z-index: 1; }
 .bars__value { font-weight: 700; flex: 0 0 auto; }
 .bars__fill {
@@ -627,3 +662,12 @@ details.edit .stack { gap: 12px; }
   border-radius: var(--radius);
   margin-bottom: 12px;
 }
+
+/* Підсумок як пари «показник — значення», а не ланцюжок через крапки:
+   три різні числа не мають зливатись у речення. */
+.summary {
+  display: flex; flex-wrap: wrap; gap: 8px 28px;
+  margin: 0 0 18px;
+}
+.summary dt { font-size: 12px; color: var(--muted); margin-bottom: 1px; }
+.summary dd { margin: 0; font-size: 19px; font-weight: 650; }

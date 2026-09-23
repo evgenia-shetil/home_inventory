@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { usePhotoUrl } from '../lib/photos.js'
-import { formatQty } from '../lib/format.js'
+import Qty from './Qty.jsx'
 
 // Порожній сірий прямокутник займав пів картки й не повідомляв нічого.
 // Літера з кольором, виведеним із назви, дає впізнаваність без фото.
@@ -28,7 +28,7 @@ export default function ItemCard({ item, low, onConsume }) {
               {(item.name ?? '?').trim().charAt(0).toUpperCase()}
             </div>}
         <h2 className="card__name">{item.name}</h2>
-        <p className="card__qty">{formatQty(total, item.unit)}</p>
+        <p className="card__qty"><Qty value={total} unit={item.unit} /></p>
         {inUse > 0 && <p className="card__use">{inUse} у користуванні</p>}
       </Link>
       <button
