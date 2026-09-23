@@ -150,16 +150,19 @@ export function InventoryProvider({ userId, children }) {
     setCategories(data)
   }, [])
 
+  // Повертає створений рядок: форма додавання одразу обирає нову
+  // категорію, щоб не переривати введення товару.
   const createCategory = useCallback(async (name, parentId = null) => {
-    const { error } = await supabase.from('categories').insert({
+    const { data, error } = await supabase.from('categories').insert({
       user_id: userId,
       name: name.trim(),
       parent_id: parentId,
       // В кінець списку: нові категорії не мають перемішувати звичний порядок.
       sort_order: 999,
-    })
+    }).select().single()
     if (error) throw error
     await reloadCategories()
+    return data
   }, [userId, reloadCategories])
 
   const updateCategory = useCallback(async (id, fields) => {

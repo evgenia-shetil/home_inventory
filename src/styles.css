@@ -333,3 +333,9 @@ button:disabled { opacity: .5; }
 .group--low .group__meta b { color: var(--warn); }
 .group__name { font-weight: 600; }
 .group__meta { flex: 0 0 auto; font-size: 15px; }
+
+.newcat { display: flex; flex-direction: column; gap: 4px; }
+.newcat__row { display: flex; gap: 6px; }
+.newcat__row input { flex: 1; }
+.newcat__row button { width: 48px; flex: 0 0 48px; font-size: 22px; }
+.newcat .link { align-self: flex-start; font-size: 13px; }

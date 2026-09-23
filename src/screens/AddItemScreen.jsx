@@ -7,6 +7,7 @@ import { suggestCategory } from '../domain/suggest.js'
 import { collectPlaces } from '../domain/places.js'
 import { parseQty } from '../domain/quantity.js'
 import QtyInput from '../ui/QtyInput.jsx'
+import CategorySelect from '../ui/CategorySelect.jsx'
 import PlaceInput from '../ui/PlaceInput.jsx'
 
 const UNITS = ['шт', 'кг', 'г', 'л', 'мл', 'пачка', 'рулон']
@@ -52,8 +53,6 @@ export default function AddItemScreen() {
     }))
   }, [presetCategory, categories])
 
-  const roots = categories.filter(c => !c.parent_id)
-  const children = categories.filter(c => c.parent_id === form.rootId)
   const places = collectPlaces(items)
 
   function applySuggestion(name) {
@@ -186,32 +185,26 @@ export default function AddItemScreen() {
         </select>
       </label>
 
-      <div className="row">
-        <label className="field">
-          Категорія
-          <select
-            value={form.rootId}
-            onChange={e => {
-              setCategoryTouched(true)
-              setForm(f => ({ ...f, rootId: e.target.value, childId: '' }))
-            }}
-          >
-            <option value="">без категорії</option>
-            {roots.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
-        </label>
+      <div className="field">
+        Категорія
+        <CategorySelect
+          value={form.rootId}
+          onChange={id => {
+            setCategoryTouched(true)
+            setForm(f => ({ ...f, rootId: id, childId: '' }))
+          }}
+        />
+      </div>
 
-        <label className="field">
-          Підкатегорія
-          <select
-            value={form.childId}
-            disabled={!children.length}
-            onChange={e => { setCategoryTouched(true); set('childId', e.target.value) }}
-          >
-            <option value="">{children.length ? 'не обрано' : '—'}</option>
-            {children.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
-        </label>
+      <div className="field">
+        Підкатегорія
+        <CategorySelect
+          value={form.childId}
+          parentId={form.rootId || null}
+          disabled={!form.rootId}
+          emptyLabel={form.rootId ? 'не обрано' : 'спершу обери категорію'}
+          onChange={id => { setCategoryTouched(true); set('childId', id) }}
+        />
       </div>
 
       <div className="row">

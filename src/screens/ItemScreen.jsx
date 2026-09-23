@@ -7,6 +7,7 @@ import { formatQty, formatPrice } from '../lib/format.js'
 import { collectPlaces } from '../domain/places.js'
 import { parseQty } from '../domain/quantity.js'
 import QtyInput from '../ui/QtyInput.jsx'
+import CategorySelect from '../ui/CategorySelect.jsx'
 import PlaceInput from '../ui/PlaceInput.jsx'
 
 const KIND_LABEL = { consume: 'витрата', restock: 'поповнення', correction: 'виправлення' }
@@ -14,11 +15,17 @@ const KIND_LABEL = { consume: 'витрата', restock: 'поповнення',
 export default function ItemScreen() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { items, categories, adjust, deleteItem, uploadPhoto } = useInventory()
+  const { items, categories, adjust, deleteItem, uploadPhoto, updateItem } = useInventory()
   const item = items.find(i => i.id === id)
   const places = collectPlaces(items)
-  const categoryName =
-    categories.find(c => c.id === item?.category_id)?.name ?? 'без категорії'
+  const current = categories.find(c => c.id === item?.category_id)
+  // Обрана гілка: якщо товар у підкатегорії — показуємо і її батька.
+  const rootId = current ? (current.parent_id ?? current.id) : ''
+  const childId = current?.parent_id ? current.id : ''
+
+  const setCategory = (root, child) =>
+    updateItem(item.id, { category_id: child || root || null })
+      .catch(err => setError(err.message))
 
   const [events, setEvents] = useState([])
   const [restock, setRestock] = useState({ qty: '1', price: '', place: '' })
@@ -95,7 +102,6 @@ export default function ItemScreen() {
       <dl className="facts">
         <dt>Ціна за одиницю</dt><dd>{formatPrice(item.last_price)}</dd>
         <dt>Де куплено</dt><dd>{item.last_place ?? '—'}</dd>
-        <dt>Категорія</dt><dd>{categoryName}</dd>
         <dt>Штрихкод</dt>
         <dd>
           {item.barcode
@@ -103,6 +109,24 @@ export default function ItemScreen() {
             : <Link to={`/scan?attach=${item.id}`} className="linkline">привʼязати</Link>}
         </dd>
       </dl>
+
+      <h2>Категорія</h2>
+      <div className="row">
+        <div className="field">
+          Категорія
+          <CategorySelect value={rootId} onChange={id => setCategory(id, '')} />
+        </div>
+        <div className="field">
+          Підкатегорія
+          <CategorySelect
+            value={childId}
+            parentId={rootId || null}
+            disabled={!rootId}
+            emptyLabel={rootId ? 'не обрано' : 'спершу обери категорію'}
+            onChange={id => setCategory(rootId, id)}
+          />
+        </div>
+      </div>
 
       <form onSubmit={handleRestock} className="stack">
         <h2>Поповнити</h2>
