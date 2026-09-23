@@ -1,9 +1,15 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase.js'
+import { useInventory } from '../data/InventoryContext.jsx'
+import { planAutoSort } from '../domain/autosort.js'
+import { plural } from '../lib/plural.js'
 import { validatePassword, authErrorMessage } from '../domain/credentials.js'
 
 export default function SettingsScreen({ email }) {
+  const { items, categories, updateItem } = useInventory()
+  const [sorting, setSorting] = useState(false)
+  const [sortResult, setSortResult] = useState(null)
   const [password, setPassword] = useState('')
   const [status, setStatus] = useState('idle')
   const [message, setMessage] = useState(null)
@@ -32,6 +38,27 @@ export default function SettingsScreen({ email }) {
     setStatus('idle')
   }
 
+  // Словник підказок доповнюється, тож товари, заведені раніше,
+  // лишаються нерозкладеними. Тут їх можна розкласти заднім числом.
+  const plan = planAutoSort(items, categories)
+
+  async function autoSort() {
+    setSorting(true)
+    setSortResult(null)
+    let done = 0
+    try {
+      for (const change of plan) {
+        await updateItem(change.id, { category_id: change.categoryId })
+        done += 1
+      }
+      setSortResult(`Розкладено ${done} ${plural(done, 'товар', 'товари', 'товарів')}`)
+    } catch (err) {
+      setSortResult(`Розкладено ${done}, далі помилка: ${err.message}`)
+    } finally {
+      setSorting(false)
+    }
+  }
+
   return (
     <div className="stack">
       <h1>Ще</h1>
@@ -39,6 +66,20 @@ export default function SettingsScreen({ email }) {
 
       <h2>Категорії</h2>
       <Link to="/categories"><button type="button" className="ghost">Керувати категоріями</button></Link>
+
+      {plan.length > 0 && (
+        <>
+          <p className="muted">
+            {plan.length} {plural(plan.length, 'товар', 'товари', 'товарів')} без підкатегорії
+            можна розкласти автоматично: {plan.slice(0, 3).map(p => p.name).join(', ')}
+            {plan.length > 3 ? ' та інші' : ''}.
+          </p>
+          <button type="button" onClick={autoSort} disabled={sorting}>
+            {sorting ? 'Розкладаю…' : 'Розкласти по підкатегоріях'}
+          </button>
+        </>
+      )}
+      {sortResult && <p className="muted">{sortResult}</p>}
 
       <form onSubmit={changePassword} className="stack">
         <h2>Пароль</h2>
