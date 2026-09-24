@@ -9,7 +9,7 @@ const items = [
 
 export default function BottomNav() {
   return (
-    <nav className="bottomnav">
+    <nav className="bottomnav" aria-label="Розділи">
       {items.map(({ to, end, label, Icon }) => (
         <NavLink key={to} to={to} end={end} className={({ isActive }) => isActive ? 'on' : ''}>
           <Icon />

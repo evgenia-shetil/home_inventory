@@ -47,11 +47,13 @@ export default function ShoppingScreen() {
   return (
     <>
       <h1>Покупки</h1>
-      <div className="segmented" role="tablist" aria-label="Період закупівлі">
+      {/* Група перемикачів, а не вкладки: вкладки обіцяють програмі читання
+          екрана стрілки й панелі, яких тут немає. */}
+      <div className="segmented" role="group" aria-label="Період закупівлі">
         {MODES.map(m => (
           <button
-            key={m.value} type="button" role="tab"
-            aria-selected={mode === m.value}
+            key={m.value} type="button"
+            aria-pressed={mode === m.value}
             className={mode === m.value ? 'on' : ''}
             onClick={() => choose(m.value)}
           >

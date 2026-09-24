@@ -934,3 +934,10 @@ a, button, input, select, label, summary { touch-action: manipulation; }
 .norm-row__inputs input { width: 64px; flex: 0 0 64px; padding: 10px 8px; text-align: center; color: var(--text); }
 .norm-row__schedule { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted); min-height: 32px; }
 .norm-row__schedule input { width: 20px; height: 20px; flex: 0 0 20px; }
+
+/* Лише для програм читання екрана. */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+.dialog__backdrop { overscroll-behavior: contain; }

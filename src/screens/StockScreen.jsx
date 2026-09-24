@@ -60,6 +60,11 @@ export default function StockScreen() {
 
   return (
     <>
+      {/* Заголовок для програм читання екрана: на головній його не видно,
+          бо назву розділу вже каже навігація, але без нього сторінка
+          читалась без жодного орієнтира. */}
+      <h1 className="sr-only">Запаси</h1>
+
       <div className="search">
         <input
           type="search"
@@ -152,6 +157,7 @@ export default function StockScreen() {
                 <span>{dueText(date, today)}</span>
               </Link>
               <button type="button" className="ghost"
+                      aria-label={`Замінено: ${category.name}`}
                       onClick={() => replace(category.id, today).catch(err => notify(err.message, { tone: 'error' }))}>
                 Замінено
               </button>
