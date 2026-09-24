@@ -294,9 +294,11 @@ button:active:not(:disabled), .fab:active { filter: brightness(.9); }
 /* Заміна нативного «Choose file»: той бере лише зовнішню рамку через
    спільні правила для input/select, а сама кнопка лишається системною
    і випадає з решти форми, зібраної в одному візуальному стилі. */
+.filepick__name { color: var(--text); font-size: 14px; overflow-wrap: anywhere; }
 .filepick {
-  display: block;
-  padding: 14px;
+  display: grid; place-items: center; text-align: center;
+  min-height: 48px; font-weight: 600;
+  padding: 10px;
   border-radius: var(--radius);
   border: 1px solid var(--line);
   background: var(--surface);

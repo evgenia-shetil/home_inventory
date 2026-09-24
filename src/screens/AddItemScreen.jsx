@@ -110,6 +110,13 @@ export default function AddItemScreen() {
     return () => { cancelled = true }
   }, [barcode, categories.length])
 
+  function pickPhoto(e) {
+    const picked = e.target.files?.[0]
+    if (!picked) return
+    setFile(picked)
+    setPhotoState('idle')
+  }
+
   async function handleSubmit(e) {
     e.preventDefault()
     setBusy(true)
@@ -170,16 +177,23 @@ export default function AddItemScreen() {
         <Link to="/scan" className="linkline">Сканування штрихкоду</Link>
       )}
 
-      <label className="field">
+      {/* Дві окремі дії: з capture телефон одразу відкриває камеру й не дає
+          обрати знімок із галереї, а без нього на частині Android камера
+          ховається глибоко в меню. */}
+      <div className="field">
         Фото
-        <span className="filepick">
-          {file ? file.name : 'Обрати фото'}
-          <input
-            type="file" accept="image/*" capture="environment" hidden
-            onChange={e => { setFile(e.target.files?.[0] ?? null); setPhotoState('idle') }}
-          />
-        </span>
-      </label>
+        {file && <span className="filepick__name">{file.name}</span>}
+        <div className="row">
+          <label className="filepick">
+            Зробити фото
+            <input type="file" accept="image/*" capture="environment" hidden onChange={pickPhoto} />
+          </label>
+          <label className="filepick">
+            Обрати з галереї
+            <input type="file" accept="image/*" hidden onChange={pickPhoto} />
+          </label>
+        </div>
+      </div>
 
       <label className="field">
         Назва
