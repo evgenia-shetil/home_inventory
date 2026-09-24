@@ -450,10 +450,43 @@ export function InventoryProvider({ userId, children }) {
       gone.has(i.category_id) ? { ...i, category_id: null } : i))
   }, [categories, reloadCategories])
 
+  // Заміна за графіком: стара річ списується з користування, нова
+  // переноситься з шафи, дата заміни стає сьогоднішньою. Кілька операцій,
+  // але одне повідомлення й одне скасування — як у списанні.
+  const replace = useCallback(async (categoryId, today) => {
+    const category = categories.find(c => c.id === categoryId)
+    if (!category) return
+    const group = items.filter(i => i.category_id === categoryId)
+    const done = []
+
+    const old = group.find(i => Number(i.in_use) > 0)
+    if (old) {
+      const { applied } = await adjust(old.id, -1, 'consume', { bucket: 'in_use' })
+      done.push({ id: old.id, applied, kind: 'correction', bucket: 'in_use' })
+    }
+    // Нову беремо тієї ж марки, якщо вона є в шафі: звичку не міняємо.
+    const fresh = group.find(i => i.id === old?.id && Number(i.qty) > 0) ?? group.find(i => Number(i.qty) > 0)
+    if (fresh) {
+      const { applied } = await adjust(fresh.id, 1, 'open', { bucket: 'move' })
+      done.push({ id: fresh.id, applied, kind: 'open', bucket: 'move' })
+    }
+
+    const previous = category.replaced_on ?? null
+    await updateCategory(categoryId, { replaced_on: today })
+
+    notify(fresh ? `Замінено · ${category.name}` : `Замінено · ${category.name}. У шафі порожньо`, {
+      tone: fresh ? 'info' : 'error',
+      undo: async () => {
+        for (const d of [...done].reverse()) await adjust(d.id, -d.applied, d.kind, { bucket: d.bucket })
+        await updateCategory(categoryId, { replaced_on: previous })
+      },
+    })
+  }, [categories, items, adjust, updateCategory, notify])
+
   const value = {
     items, categories, status, error, online, notice, staleSince, pending,
     reload, sync, adjust: adjustWithUndo, notify, dismissNotice,
-    consume, discard, convertToPacks,
+    consume, discard, convertToPacks, replace,
     createItem, updateItem, deleteItem, uploadPhoto, deletePhoto,
     createCategory, updateCategory, deleteCategory,
   }

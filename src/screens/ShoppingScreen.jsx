@@ -8,26 +8,78 @@ import { bestOffer } from '../domain/prices.js'
 import { useJournal } from '../lib/journal.js'
 import { upcoming, formatDuration } from '../domain/forecast.js'
 import { formatQty, formatPrice, formatNumber } from '../lib/format.js'
-import { Skeleton, Empty, ErrorState } from '../ui/States.jsx'
+import { Skeleton, ErrorState } from '../ui/States.jsx'
+import PlanView from '../ui/PlanView.jsx'
 
+const HORIZON_KEY = 'zapasy:horizon'
+const MODES = [
+  { value: 'now', label: 'Зараз' },
+  { value: '3', label: '3 міс' },
+  { value: '6', label: 'Пів року' },
+  { value: '12', label: 'Рік' },
+]
+
+// Вибір періоду — зручність цього пристрою, тож живе в браузері.
+function readMode() {
+  try {
+    const saved = localStorage.getItem(HORIZON_KEY)
+    return MODES.some(m => m.value === saved) ? saved : 'now'
+  } catch {
+    return 'now'
+  }
+}
+
+// «Зараз» — те, що вже нижче сигналу. Решта — план великої закупівлі:
+// скільки взяти одразу, щоб вистачило на весь період.
 export default function ShoppingScreen() {
-  const { items, categories, status, error, reload, adjust, notify } = useInventory()
-  const [busyId, setBusyId] = useState(null)
+  const { status, error, reload } = useInventory()
+  const [mode, setMode] = useState(readMode)
   const journal = useJournal()
 
   if (status === 'loading') return <Skeleton count={3} />
   if (status === 'error') return <ErrorState message={error} onRetry={reload} />
 
+  const choose = value => {
+    setMode(value)
+    try { localStorage.setItem(HORIZON_KEY, value) } catch { /* лише зручність */ }
+  }
+
+  return (
+    <>
+      <h1>Покупки</h1>
+      <div className="segmented" role="tablist" aria-label="Період закупівлі">
+        {MODES.map(m => (
+          <button
+            key={m.value} type="button" role="tab"
+            aria-selected={mode === m.value}
+            className={mode === m.value ? 'on' : ''}
+            onClick={() => choose(m.value)}
+          >
+            {m.label}
+          </button>
+        ))}
+      </div>
+      {mode === 'now'
+        ? <NowList journal={journal} />
+        : <PlanView horizon={Number(mode)} journal={journal} />}
+    </>
+  )
+}
+
+function NowList({ journal }) {
+  const { items, categories, adjust, notify } = useInventory()
+  const [busyId, setBusyId] = useState(null)
+
   // Список покупок — перелік потреб, а не марок: у магазин ідеш
   // по зубну щітку, а не саме по Colgate.
   const groups = groupItems(items, categories)
   const low = shoppingGroups(groups)
-  const soon = journal.events ? upcoming(groups, journal.events) : []
+  const soon = journal.events ? upcoming(groups, journal.events, new Date(), undefined, categories) : []
 
   if (low.length === 0) {
     return (
       <>
-        <Empty title="Потреб немає" />
+        <p className="empty--inline">Нижче сигналу нічого немає.</p>
         <Upcoming list={soon} />
       </>
     )
@@ -48,7 +100,6 @@ export default function ShoppingScreen() {
 
   return (
     <>
-      <h1>Покупки</h1>
       <dl className="summary">
         <div>
           <dt>Потреб</dt>

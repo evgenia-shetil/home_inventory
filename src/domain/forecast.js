@@ -12,6 +12,15 @@ export const MIN_EVENTS = 3
 export const HORIZON_DAYS = 14
 
 const DAY = 86_400_000
+export const MONTH_DAYS = 30.4375
+
+// Норма «N одиниць кожні M місяців» у перерахунку на день.
+export function normPerDay(category) {
+  const qty = Number(category?.usage_qty)
+  const months = Number(category?.usage_months)
+  if (!(qty > 0) || !(months > 0)) return null
+  return qty / (months * MONTH_DAYS)
+}
 
 // Події, записані до зміни одиниці виміру, рахувались в інших одиницях
 // (мл замість упаковок) і змішали б темп.
@@ -48,8 +57,11 @@ export function consumptionRate(group, events = [], now = new Date()) {
   return { perDay: used / days, days, events: consumed.length }
 }
 
-export function forecast(group, events = [], now = new Date()) {
-  const rate = consumptionRate(group, events, now)
+// Норма, якщо задана, має пріоритет над журналом — так само, як у плані
+// закупівлі. Інакше прогноз і план суперечили б одне одному.
+export function forecast(group, events = [], now = new Date(), category = null) {
+  const norm = normPerDay(category)
+  const rate = norm !== null ? { perDay: norm } : consumptionRate(group, events, now)
   if (!rate) return null
 
   // Прострочене вже не запас — рахуємо лише придатне.
@@ -66,11 +78,15 @@ export function forecast(group, events = [], now = new Date()) {
 
 // Те, що ще не нижче порога, але дійде до нього найближчим часом.
 // Разові речі не прогнозуються: їх не поповнюють.
-export function upcoming(groups = [], events = [], now = new Date(), horizon = HORIZON_DAYS) {
+// Речі за графіком не прогнозуються: вони не закінчуються, їх міняють
+// у дату, і для них є окреме нагадування.
+export function upcoming(groups = [], events = [], now = new Date(), horizon = HORIZON_DAYS, categories = []) {
+  const byId = new Map(categories.map(c => [c.id, c]))
   return groups
     .filter(g => !g.low)
     .filter(g => g.items.some(i => i.recurring !== false))
-    .map(g => ({ group: g, forecast: forecast(g, events, now) }))
+    .filter(g => !byId.get(g.categoryId)?.scheduled)
+    .map(g => ({ group: g, forecast: forecast(g, events, now, byId.get(g.categoryId)) }))
     .filter(x => x.forecast && x.forecast.daysToSignal <= horizon)
     .sort((a, b) => a.forecast.daysToSignal - b.forecast.daysToSignal)
 }

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { groupItems } from './groups.js'
+import { groupItems, dominantUnit } from './groups.js'
 
 const cats = [
   { id: 'r1', name: 'тіло', parent_id: null, threshold: 1 },
@@ -229,5 +229,19 @@ describe('groupItems і різні одиниці', () => {
     ], shampoo)
     expect(g.mixedUnits).toBe(true)
     expect(g.byUnit).toEqual([{ unit: 'мл', total: 500 }, { unit: 'шт', total: 2 }])
+  })
+})
+
+describe('dominantUnit', () => {
+  it('штучна одиниця важить більше за міру', () => {
+    expect(dominantUnit([{ unit: 'мл' }, { unit: 'шт' }])).toBe('шт')
+  })
+
+  it('серед рівних — найчастіша', () => {
+    expect(dominantUnit([{ unit: 'рулон' }, { unit: 'шт' }, { unit: 'рулон' }])).toBe('рулон')
+  })
+
+  it('лише міри — найчастіша з них', () => {
+    expect(dominantUnit([{ unit: 'мл' }, { unit: 'г' }, { unit: 'мл' }])).toBe('мл')
   })
 })

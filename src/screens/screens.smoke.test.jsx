@@ -16,7 +16,10 @@ const fixtures = {
   categories: [
     { id: 'root', name: 'обличчя', parent_id: null, threshold: 1, target: null, sort_order: 1 },
     { id: 'meds', name: 'ліки', parent_id: 'root', threshold: 2, target: 4, sort_order: 2 },
-    { id: 'wash', name: 'вмивання', parent_id: 'root', threshold: 1, target: null, sort_order: 3 },
+    { id: 'wash', name: 'вмивання', parent_id: 'root', threshold: 1, target: null, sort_order: 3,
+      usage_qty: 1, usage_months: 1 },
+    { id: 'brush', name: 'зубна щітка', parent_id: 'root', threshold: 1, target: null, sort_order: 4,
+      usage_qty: 1, usage_months: 3, scheduled: true, replaced_on: date(-100) },
   ],
   items: [
     { id: 'i1', name: 'Знеболювальне', qty: '3', in_use: '0', unit: 'шт', threshold: '1',
@@ -28,6 +31,9 @@ const fixtures = {
     { id: 'i3', name: 'Гель', qty: '2', in_use: '1', unit: 'шт', threshold: '1',
       category_id: 'wash', expires_on: null, recurring: true, last_price: '120', last_place: 'Єва',
       pack_size: '250', pack_unit: 'мл', updated_at: iso(-2), created_at: iso(-40) },
+    { id: 'i5', name: 'Oral-B', qty: '1', in_use: '1', unit: 'шт', threshold: '1',
+      category_id: 'brush', expires_on: null, recurring: true, last_price: '145', last_place: 'Єва',
+      pack_size: null, pack_unit: null, updated_at: iso(-3), created_at: iso(-40) },
     { id: 'i4', name: 'Лампочка', qty: '0', in_use: '0', unit: 'шт', threshold: '1',
       category_id: null, expires_on: null, recurring: false, last_price: null, last_place: null,
       pack_size: null, pack_unit: null, updated_at: iso(-5), created_at: iso(-40) },
@@ -140,6 +146,34 @@ describe('екрани рендеряться з реальною формою �
     expect(text).toContain('ліки')
     expect(text).toContain('прострочено')
     expect(text).not.toContain('Лампочка')
+  })
+
+  it('заміна за графіком на головній', async () => {
+    const text = await render('/', '/', screens.StockScreen)
+    expect(text).toContain('Заміна: зубна щітка')
+    expect(text).toContain('Замінено')
+  })
+
+  it('план закупівлі на рік', async () => {
+    // Node підставляє власний неповний localStorage замість jsdom-ового,
+    // тож обраний період задаємо заглушкою.
+    vi.stubGlobal('localStorage', {
+      getItem: key => (key === 'zapasy:horizon' ? '12' : null),
+      setItem: () => {}, removeItem: () => {},
+    })
+    try {
+      const text = await render('/shopping', '/shopping', screens.ShoppingScreen)
+      expect(text).toContain('за нормою')
+      expect(text).toMatch(/4\s*заміни за період/)
+      expect(text).toContain('Темп невідомий')
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('налаштування підкатегорії з нормою й графіком', async () => {
+    const text = await render('/category/brush', '/category/:id', screens.CategoryScreen)
+    expect(text).toContain('наступна заміна')
   })
 
   it('картка простроченого товару пропонує списання', async () => {

@@ -4,6 +4,7 @@ import { useInventory } from '../data/InventoryContext.jsx'
 import { groupItems } from '../domain/groups.js'
 import { branchItems } from '../domain/home.js'
 import { forecast, formatDuration } from '../domain/forecast.js'
+import { nextReplacement } from '../domain/plan.js'
 import { useJournal } from '../lib/journal.js'
 import { formatQty, formatNumber } from '../lib/format.js'
 import ItemCard from '../ui/ItemCard.jsx'
@@ -64,6 +65,7 @@ export default function CategoryScreen() {
         ? <Folder groups={groupItems(branchItems(id, items, categories), categories)} />
         : <Need
             group={groupItems(items.filter(i => i.category_id === id), categories)[0]}
+            category={category}
             events={journal.events}
             consume={consume}
           />}
@@ -88,9 +90,9 @@ function Folder({ groups }) {
   return <GroupList groups={groups} />
 }
 
-function Need({ group, events, consume }) {
+function Need({ group, category, events, consume }) {
   if (!group) return <Empty title="Категорія порожня" />
-  const outlook = events ? forecast(group, events) : null
+  const outlook = events ? forecast(group, events, new Date(), category) : null
   const unitless = value => (group.mixedUnits ? formatNumber(value) : formatQty(value, group.unit))
 
   return (
@@ -106,7 +108,11 @@ function Need({ group, events, consume }) {
           {group.inUse > 0 && <li>{unitless(group.inUse)} у користуванні</li>}
           {group.expired > 0 && <li className="error">{unitless(group.expired)} прострочено</li>}
           <li>сигнал на {unitless(group.threshold)}</li>
-          {outlook && outlook.daysLeft >= 1 && (
+          {category.scheduled && nextReplacement(category) && (
+            <li>наступна заміна {new Date(`${nextReplacement(category)}T00:00:00`)
+              .toLocaleDateString('uk-UA', { day: 'numeric', month: 'long' })}</li>
+          )}
+          {!category.scheduled && outlook && outlook.daysLeft >= 1 && (
             <li>вистачить приблизно на {formatDuration(outlook.daysLeft)}</li>
           )}
         </ul>

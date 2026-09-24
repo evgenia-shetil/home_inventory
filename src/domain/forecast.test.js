@@ -87,3 +87,16 @@ describe('formatDuration', () => {
     expect(formatDuration(95)).toBe('3 місяці')
   })
 })
+
+describe('forecast із нормою', () => {
+  it('норма має пріоритет над журналом, навіть коли історії ще немає', () => {
+    const f = forecast({ ...group(), total: 10, threshold: 2 }, [], now, { usage_qty: 1, usage_months: 1 })
+    expect(f.perDay).toBeCloseTo(1 / 30.4375)
+  })
+
+  it('речі за графіком у «скоро закінчиться» не потрапляють', () => {
+    const g = group({ total: 3, categoryId: 'c' })
+    const cats = [{ id: 'c', scheduled: true, usage_qty: 1, usage_months: 1 }]
+    expect(upcoming([g], steady, now, 14, cats)).toEqual([])
+  })
+})

@@ -68,6 +68,7 @@ export function groupItems(items = [], categories = [], today = localDate()) {
   return [...groups.values()]
     .map(group => ({
       ...group,
+      unit: dominantUnit(group.items),
       usable: group.total - group.expired,
       // Складати кілограми зі штуками безглуздо, але заборонити це на
       // рівні даних не можна — позначаємо, щоб інтерфейс попередив,
@@ -95,4 +96,18 @@ function byUnit(items) {
     totals.set(item.unit, (totals.get(item.unit) ?? 0) + sum)
   }
   return [...totals.entries()].map(([unit, total]) => ({ unit, total }))
+}
+
+// Одиниця групи — не одиниця першої-ліпшої марки: від неї залежить, у
+// чому задана норма й що рахується запасом у плані. Запас рахується
+// упаковками (інваріант 11), тож штучні одиниці мають перевагу над
+// мірами; серед рівних — та, якою обліковано більше марок.
+const MEASURES = new Set(['мл', 'л', 'г', 'кг'])
+
+export function dominantUnit(items) {
+  const counts = new Map()
+  for (const item of items) counts.set(item.unit, (counts.get(item.unit) ?? 0) + 1)
+  return [...counts.entries()]
+    .sort((a, b) =>
+      (MEASURES.has(a[0]) ? 1 : 0) - (MEASURES.has(b[0]) ? 1 : 0) || b[1] - a[1])[0]?.[0]
 }

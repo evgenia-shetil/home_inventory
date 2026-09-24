@@ -12,7 +12,8 @@ let seq = 0
 const id = () => `demo-${++seq}`
 
 const cat = (name, parent_id = null, extra = {}) =>
-  ({ id: id(), user_id: USER.id, name, parent_id, threshold: 1, target: null, sort_order: seq, created_at: iso(-60), ...extra })
+  ({ id: id(), user_id: USER.id, name, parent_id, threshold: 1, target: null, usage_qty: null,
+     usage_months: null, scheduled: false, replaced_on: null, sort_order: seq, created_at: iso(-60), ...extra })
 
 const face = cat('обличчя')
 const body = cat('тіло')
@@ -20,16 +21,16 @@ const meds = cat('ліки')
 const home = cat('дім')
 const cats = [
   face, body, meds, home,
-  cat('зубна паста', face.id, { threshold: 1, target: 3 }),
-  cat('зубна щітка', face.id, { threshold: 2, target: 4 }),
+  cat('зубна паста', face.id, { threshold: 1, target: 3, usage_qty: 1, usage_months: 1 }),
+  cat('зубна щітка', face.id, { threshold: 1, usage_qty: 1, usage_months: 3, scheduled: true, replaced_on: day(-89) }),
   cat('крем', face.id),
-  cat('шампунь', body.id, { threshold: 1, target: 2 }),
+  cat('шампунь', body.id, { threshold: 1, target: 2, usage_qty: 1, usage_months: 2 }),
   cat('гель для душу', body.id),
   cat('дезодорант', body.id),
   cat('знеболювальне', meds.id, { threshold: 2 }),
   cat('пластирі', meds.id),
   cat('миючий засіб', home.id),
-  cat('туалетний папір', home.id, { threshold: 4, target: 12 }),
+  cat('туалетний папір', home.id, { threshold: 4, target: 12, usage_qty: 8, usage_months: 1 }),
   cat('лампочки', home.id),
 ]
 const sub = name => cats.find(c => c.name === name).id

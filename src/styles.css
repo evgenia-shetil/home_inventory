@@ -871,3 +871,39 @@ a, button, input, select, label, summary { touch-action: manipulation; }
 .cat__more > summary::after { content: '›'; margin-left: 6px; transition: transform .15s ease; }
 .cat__more[open] > summary::after { transform: rotate(90deg); }
 .cat__more[open] > summary { color: var(--text); }
+
+/* Норма «[2] кожні [3] міс.» — одним рядком, як її вимовляють. */
+.norm { display: grid; grid-template-columns: auto 1fr; gap: 8px 12px; align-items: center; }
+.norm > span { color: var(--muted); font-size: 14px; }
+.field small .link { padding: 0; min-height: 0; font-size: inherit; color: var(--accent); text-decoration: underline; }
+
+/* Перемикач періоду: один рядок сегментів, обраний — заливкою й вагою,
+   бо колір не буває єдиною ознакою стану. */
+.segmented {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px;
+  padding: 4px; margin-bottom: 16px;
+  background: var(--surface-2); border-radius: var(--radius-control);
+}
+.segmented button {
+  min-height: 40px; padding: 0 4px;
+  background: transparent; color: var(--muted);
+  font-weight: 500; font-size: 14px; border-radius: 6px;
+}
+.segmented button.on { background: var(--surface); color: var(--text); font-weight: 650; box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+
+.planrow { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.planrow__qty .qty__num { font-size: 22px; font-weight: 700; }
+
+.empty--inline { color: var(--muted); text-align: center; padding: 24px 0; margin: 0; }
+
+.replacerow {
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 12px; padding: 10px 12px 10px 16px;
+  border-radius: var(--radius); background: var(--surface);
+  box-shadow: inset 4px 0 0 var(--accent);
+}
+.replacerow__text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.replacerow__text b { font-weight: 650; }
+.replacerow__text span { font-size: 14px; color: var(--muted); }
+.replacerow button { width: auto; flex: 0 0 auto; padding: 0 14px; min-height: 44px; }
+.replacerow__text { color: inherit; text-decoration: none; }

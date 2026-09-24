@@ -7,6 +7,8 @@ import { estimateCost } from '../domain/cost.js'
 import { searchItems } from '../domain/search.js'
 import { expiringItems } from '../domain/expiry.js'
 import { rootSummaries, unsortedItems } from '../domain/home.js'
+import { dueReplacements } from '../domain/plan.js'
+import { localDate } from '../domain/expiry.js'
 import { formatPrice } from '../lib/format.js'
 import { plural } from '../lib/plural.js'
 import ItemCard from '../ui/ItemCard.jsx'
@@ -19,7 +21,7 @@ import { IconPlus, IconChevron } from '../ui/icons.jsx'
 // всередині категорії — так на першому екрані немає довгої прокрутки,
 // а питання «чи треба щось купити» має відповідь без жодного дотику.
 export default function StockScreen() {
-  const { items, categories, status, error, reload, consume } = useInventory()
+  const { items, categories, status, error, reload, consume, replace, notify } = useInventory()
   const [query, setQuery] = useState('')
 
   if (status === 'loading') return <Skeleton variant="home" />
@@ -45,6 +47,9 @@ export default function StockScreen() {
   const cost = estimateCost(needs)
   const tiles = rootSummaries(items, categories)
   const unsorted = unsortedItems(items, categories)
+
+  const today = localDate()
+  const due = dueReplacements(categories.filter(c => c.parent_id), today)
 
   const expiring = expiringItems(items)
   const expiredCount = expiring.filter(x => x.expiry.state === 'expired').length
@@ -98,6 +103,22 @@ export default function StockScreen() {
                 </span>}
             <IconChevron />
           </Link>
+
+          {/* Заміна за графіком — не нестача й не псування, а дата. Окремий
+              рядок із дією просто в ньому: заходити в категорію заради
+              одного дотику зайве. */}
+          {due.map(({ category, due: date }) => (
+            <div key={category.id} className="replacerow">
+              <Link to={`/category/${category.id}`} className="replacerow__text">
+                <b>Заміна: {category.name}</b>
+                <span>{dueText(date, today)}</span>
+              </Link>
+              <button type="button" className="ghost"
+                      onClick={() => replace(category.id, today).catch(err => notify(err.message, { tone: 'error' }))}>
+                Замінено
+              </button>
+            </div>
+          ))}
 
           {expiring.length > 0 && (
             <Link to="/expiring" className="expiryrow">
@@ -156,4 +177,11 @@ export default function StockScreen() {
       </div>
     </>
   )
+}
+
+function dueText(date, today) {
+  if (date < today) return 'час минув'
+  if (date === today) return 'сьогодні'
+  const days = Math.round((Date.parse(date) - Date.parse(today)) / 86_400_000)
+  return days === 1 ? 'завтра' : `через ${days} ${plural(days, 'день', 'дні', 'днів')}`
 }
