@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useInventory } from '../data/InventoryContext.jsx'
 import { groupItems } from '../domain/groups.js'
+import { forecast, formatDuration } from '../domain/forecast.js'
+import { useJournal } from '../lib/journal.js'
 import { formatQty } from '../lib/format.js'
 import ItemCard from '../ui/ItemCard.jsx'
 import { Empty } from '../ui/States.jsx'
@@ -13,6 +15,7 @@ export default function CategoryScreen() {
   const navigate = useNavigate()
   const { items, categories, adjust, notify } = useInventory()
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const journal = useJournal()
 
   const category = categories.find(c => c.id === id)
   if (!category) {
@@ -26,6 +29,7 @@ export default function CategoryScreen() {
   }
 
   const [group] = groupItems(items.filter(i => i.category_id === id), categories)
+  const outlook = group && journal.events ? forecast(group, journal.events) : null
 
   return (
     <>
@@ -48,18 +52,28 @@ export default function CategoryScreen() {
 
       {group?.mixedUnits && (
         <p className="error">
-          У категорії різні одиниці виміру, тому підсумок некоректний.
-          Одиниці зводяться до однієї в картках товарів.
+          У категорії різні одиниці виміру, тож спільного підсумку немає, а
+          сигнал рахується неточно. Товари в мл чи г переводяться в упаковки
+          в картці: Налаштування товару → Рахувати упаковками.
         </p>
       )}
 
       {group
         ? <p className={group.low ? 'error' : 'muted'}>
-            Всього {formatQty(group.total, group.unit)}
+            Всього {group.mixedUnits
+              ? group.byUnit.map(u => formatQty(u.total, u.unit)).join(' + ')
+              : formatQty(group.total, group.unit)}
             {group.inUse > 0 && `, з них ${formatQty(group.inUse, group.unit)} у користуванні`}
+            {group.expired > 0 && `, ${formatQty(group.expired, group.unit)} прострочено`}
             , сигнал на {formatQty(group.threshold, group.unit)}
           </p>
         : <Empty title="Категорія порожня" />}
+
+      {outlook && outlook.daysLeft >= 1 && (
+        <p className="muted">
+          За темпом витрачання вистачить приблизно на {formatDuration(outlook.daysLeft)}
+        </p>
+      )}
 
       {group && (
         <div className="grid">

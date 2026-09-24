@@ -4,22 +4,33 @@ import { useInventory } from '../data/InventoryContext.jsx'
 import { groupItems } from '../domain/groups.js'
 import { shoppingGroups, toBuy } from '../domain/needs.js'
 import { estimateCost } from '../domain/cost.js'
+import { bestOffer } from '../domain/prices.js'
+import { useJournal } from '../lib/journal.js'
+import { upcoming, formatDuration } from '../domain/forecast.js'
 import { formatQty, formatPrice } from '../lib/format.js'
 import { Skeleton, Empty, ErrorState } from '../ui/States.jsx'
 
 export default function ShoppingScreen() {
   const { items, categories, status, error, reload, adjust, notify } = useInventory()
   const [busyId, setBusyId] = useState(null)
+  const journal = useJournal()
 
   if (status === 'loading') return <Skeleton count={3} />
   if (status === 'error') return <ErrorState message={error} onRetry={reload} />
 
   // Список покупок — перелік потреб, а не марок: у магазин ідеш
   // по зубну щітку, а не саме по Colgate.
-  const low = shoppingGroups(groupItems(items, categories))
+  const groups = groupItems(items, categories)
+  const low = shoppingGroups(groups)
+  const soon = journal.events ? upcoming(groups, journal.events) : []
 
   if (low.length === 0) {
-    return <Empty title="Потреб немає" />
+    return (
+      <>
+        <Empty title="Потреб немає" />
+        <Upcoming list={soon} />
+      </>
+    )
   }
 
   const cost = estimateCost(low)
@@ -68,6 +79,10 @@ export default function ShoppingScreen() {
         </details>
       )}
 
+      {journal.error && (
+        <p className="muted">Порівняння цін недоступне: {journal.error}</p>
+      )}
+
       <ul className="shopping">
         {low.map(group => (
           <li key={group.key}>
@@ -76,12 +91,15 @@ export default function ShoppingScreen() {
                 категорією, вона каже чого бракує, а товар — якої марки. */}
             {group.categoryId && <p className="shopping__name">{group.name}</p>}
             <p className="muted">
-              лишилось {formatQty(group.total, group.unit)}
+              лишилось {formatQty(group.usable, group.unit)}
               {group.inUse > 0 && ` (${formatQty(group.inUse, group.unit)} у користуванні)`}
+              {group.expired > 0 && `, ще ${formatQty(group.expired, group.unit)} прострочено`}
               {toBuy(group) !== null
                 ? ` · взяти ${formatQty(toBuy(group), group.unit)}`
                 : `, поріг ${formatQty(group.threshold, group.unit)}`}
             </p>
+
+            <OfferHint group={group} events={journal.events} />
 
             <ul className="shopping__brands">
               {group.items.map(item => (
@@ -110,6 +128,59 @@ export default function ShoppingScreen() {
           </li>
         ))}
       </ul>
+
+      <Upcoming list={soon} />
     </>
+  )
+}
+
+// Прогноз окремо від списку: це ще не потреба, а попередження.
+// Змішати їх означало б купувати те, що ще є вдома.
+function Upcoming({ list }) {
+  if (!list.length) return null
+  return (
+    <section className="upcoming">
+      <h2>Скоро закінчиться</h2>
+      <p className="muted">За темпом витрачання з журналу. Це оцінка.</p>
+      <ul className="groups">
+        {list.map(({ group, forecast }) => (
+          <li key={group.key}>
+            <Link
+              to={group.categoryId ? `/category/${group.categoryId}` : `/item/${group.items[0].id}`}
+              className="group"
+            >
+              <span className="group__name">{group.name}</span>
+              <span className="group__meta">
+                {forecast.daysToSignal < 1
+                  ? 'сигнал найближчим часом'
+                  : `сигнал через ${formatDuration(forecast.daysToSignal)}`}
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
+// Підказка «де брати» має сенс лише тоді, коли було з чим порівнювати:
+// єдина відома ціна вже стоїть у рядку марки.
+function OfferHint({ group, events }) {
+  if (!events) return null
+  const offer = bestOffer(group, events)
+  if (!offer || offer.alternatives === 0) return null
+
+  // Марку називаємо, лише коли їх кілька; магазин — коли він відомий.
+  const what = [
+    group.items.length > 1 ? offer.item.name : null,
+    offer.place,
+  ].filter(Boolean).join(', ')
+  if (!what) return null
+
+  return (
+    <p className="shopping__hint">
+      Вигідніше: {what}, {formatPrice(offer.price)}
+      {offer.byVolume && ` (${formatPrice(offer.perUnit * 100)} за 100 ${offer.item.pack_unit})`}
+    </p>
   )
 }

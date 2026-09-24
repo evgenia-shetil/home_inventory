@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom'
 import { usePhotoUrl } from '../lib/photos.js'
 import Qty from './Qty.jsx'
+import { expiryState } from '../domain/expiry.js'
+import { formatQty } from '../lib/format.js'
 
 // Порожній сірий прямокутник займав пів картки й не повідомляв нічого.
 // Літера з кольором, виведеним із назви, дає впізнаваність без фото.
@@ -14,6 +16,7 @@ export default function ItemCard({ item, low, onConsume }) {
   const inUse = Number(item.in_use ?? 0)
   const total = Number(item.qty) + inUse
   const url = usePhotoUrl(item.photo_path)
+  const expiry = expiryState(item)
 
   return (
     <article className={`card${low ? ' card--low' : ''}`}>
@@ -28,8 +31,11 @@ export default function ItemCard({ item, low, onConsume }) {
               {(item.name ?? '?').trim().charAt(0).toUpperCase()}
             </div>}
         <h2 className="card__name">{item.name}</h2>
+        {item.pack_size && <p className="card__use">по {formatQty(item.pack_size, item.pack_unit)}</p>}
         <p className="card__qty"><Qty value={total} unit={item.unit} /></p>
         {inUse > 0 && <p className="card__use">{inUse} у користуванні</p>}
+        {expiry?.state === 'expired' && <p className="card__expiry">прострочено</p>}
+        {expiry?.state === 'soon' && <p className="card__use">термін спливає</p>}
       </Link>
       <button
         className="card__consume"

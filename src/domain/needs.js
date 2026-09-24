@@ -3,7 +3,8 @@
 export function toBuy(group) {
   const target = group?.target
   if (target === null || target === undefined || target === '') return null
-  return Math.max(0, Number(target) - Number(group.total))
+  // Прострочене в запас не входить: його доведеться замінити.
+  return Math.max(0, Number(target) - Number(group.usable ?? group.total))
 }
 
 // Разова річ, скінчившись, не має оселятись у списку покупок назавжди.

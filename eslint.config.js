@@ -25,7 +25,7 @@ export default [
         localStorage: 'readonly', fetch: 'readonly', console: 'readonly',
         setTimeout: 'readonly', clearTimeout: 'readonly', process: 'readonly',
         requestAnimationFrame: 'readonly', createImageBitmap: 'readonly',
-        File: 'readonly', Blob: 'readonly', confirm: 'readonly', Intl: 'readonly',
+        File: 'readonly', Blob: 'readonly', URL: 'readonly', crypto: 'readonly', confirm: 'readonly', Intl: 'readonly',
         __BUILD_ID__: 'readonly',
       },
     },

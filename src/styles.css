@@ -259,9 +259,15 @@ button:disabled { opacity: .5; }
 }
 
 .banner {
-  position: fixed; top: 0; left: 0; right: 0;
+  position: fixed; top: 0; left: 0; right: 0; z-index: 20;
+  display: flex; align-items: center; justify-content: center; gap: 12px;
   background: var(--warn); color: var(--on-warn);
   padding: 10px 16px; text-align: center; font-size: 14px;
+}
+.banner button {
+  width: auto; min-height: 36px; padding: 0 12px; flex: 0 0 auto;
+  background: transparent; color: var(--on-warn);
+  border: 1px solid currentColor; border-radius: var(--radius-control);
 }
 
 .field { display: flex; flex-direction: column; gap: 6px; font-size: 14px; color: var(--muted); }
@@ -630,14 +636,9 @@ details.edit .stack { gap: 12px; }
 
 .cat__numbers { display: flex; flex-direction: column; gap: 12px; }
 
-.recent { margin-bottom: 16px; }
-.recent__title { font-size: 14px; color: var(--muted); margin: 0 0 8px; }
-
 /* Підтвердження — єдине місце, де колір лишається зеленим. */
 .toast--success { background: var(--success); color: var(--on-success); }
 .toast--success button { color: var(--on-success); }
-
-.recent, .recent__title { display: none; }
 
 /* Службова вкладка відрізняється від категорій, щоб її не читали
    як ще одну категорію. */
@@ -680,3 +681,53 @@ details.edit .stack { gap: 12px; }
   border: 1px solid var(--line-strong); border-radius: var(--radius-control);
   font-weight: 600; cursor: pointer;
 }
+
+/* Порівняння цін: таблиця, бо це справді табличні дані — магазин
+   проти магазину, і цифри мають стояти одна під одною. */
+.prices { width: 100%; border-collapse: collapse; font-size: 15px; }
+.prices th {
+  text-align: right; font-weight: 500; font-size: 13px; color: var(--muted);
+  padding: 0 0 6px;
+}
+.prices th:first-child, .prices td:first-child { text-align: left; }
+.prices td { text-align: right; padding: 8px 0; border-top: 1px solid var(--line); }
+.prices td + td, .prices th + th { padding-left: 12px; }
+.prices td small { display: block; font-size: 13px; }
+
+.shopping__hint { font-size: 14px; margin: 4px 0 0; }
+
+.upcoming { margin-top: 28px; }
+
+/* Кнопка поруч із полем у рядку: без цього глобальне
+   button { width: 100% } видавлює поле. */
+.ghost--fit { width: auto; flex: 0 0 auto; padding: 0 14px; }
+
+/* Прострочене — окремий стан, не «закінчується»: інша позначка
+   і текст, а не лише колір. */
+.alert {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 12px 14px; border-radius: var(--radius);
+  border-left: 4px solid var(--warn); background: var(--surface);
+}
+.alert p { margin: 0; font-size: 15px; }
+.alert button { width: auto; flex: 0 0 auto; padding: 0 16px; }
+.facts dd small { display: block; font-weight: 500; font-size: 13px; }
+.expiry--warn { color: var(--warn); }
+.row--fit { grid-template-columns: 1fr auto; align-items: center; }
+
+.group--expired { box-shadow: inset 3px 0 0 var(--warn); }
+.group__sub { display: block; font-weight: 450; font-size: 13px; color: var(--muted); margin-top: 2px; }
+.group--expired .group__sub { color: var(--warn); }
+.group__flag { font-size: 12.5px; color: var(--warn); font-weight: 600; }
+
+/* Рядок-посилання на погляд «термін придатності» над переліком потреб:
+   окремий блок, щоб не читався як ще одна підкатегорія. */
+.expiryrow {
+  display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  margin-bottom: 12px; padding: 12px 16px;
+  border-radius: var(--radius); background: var(--surface);
+  border-left: 4px solid var(--warn);
+  color: inherit; text-decoration: none; font-size: 15px;
+}
+.expiryrow b { font-weight: 600; }
+.card__expiry { margin: 0; font-size: 13px; font-weight: 600; color: var(--warn); }

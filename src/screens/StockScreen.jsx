@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import { useInventory } from '../data/InventoryContext.jsx'
 import { groupItems } from '../domain/groups.js'
 import { searchItems } from '../domain/search.js'
+import { expiringItems } from '../domain/expiry.js'
+import { formatQty } from '../lib/format.js'
 import ItemCard from '../ui/ItemCard.jsx'
 import Qty from '../ui/Qty.jsx'
 import { plural } from '../lib/plural.js'
@@ -66,6 +68,10 @@ export default function StockScreen() {
   // з підсумковою кількістю. Марки всередині відкриваються окремо.
   const groups = groupItems(items.filter(inBranch), categories)
 
+  const expiring = expiringItems(items)
+  const expiredCount = expiring.filter(x => x.expiry.state === 'expired').length
+  const soonCount = expiring.length - expiredCount
+
   return (
     <>
       <div className="search">
@@ -102,6 +108,17 @@ export default function StockScreen() {
           : <Empty title="Нічого не знайдено" />
       )}
 
+
+      {!found && expiring.length > 0 && (
+        <Link to="/expiring" className="expiryrow">
+          <span>Термін придатності</span>
+          <span>
+            {expiredCount > 0 && <b>{expiredCount} {plural(expiredCount, 'прострочений', 'прострочені', 'прострочених')}</b>}
+            {expiredCount > 0 && soonCount > 0 && ', '}
+            {soonCount > 0 && `${soonCount} скоро`}
+          </span>
+        </Link>
+      )}
 
       {!found && (
         <CategoryStrip
@@ -144,7 +161,10 @@ export default function StockScreen() {
             >
               <span className="group__name">{group.name}</span>
               <span className="group__meta">
-                <Qty value={group.total} unit={group.unit} />
+                {group.expired > 0 && <span className="group__flag">прострочено</span>}
+                {group.mixedUnits
+                  ? <span className="qty">{group.byUnit.map(u => formatQty(u.total, u.unit)).join(' + ')}</span>
+                  : <Qty value={group.total} unit={group.unit} />}
                 {group.categoryId && group.items.length > 1 && (
                   <span className="group__count">
                     {group.items.length} {plural(group.items.length, 'товар', 'товари', 'товарів')}

@@ -1,8 +1,11 @@
 import { createContext, useContext, useCallback, useEffect, useRef, useState } from 'react'
+import { plural } from '../lib/plural.js'
 import { supabase } from '../lib/supabase.js'
 import { applyDelta } from '../domain/optimistic.js'
 import { compressImage } from '../domain/image.js'
 import { invalidatePhoto } from '../lib/photos.js'
+import { isNetworkError, applyQueue } from '../domain/offline.js'
+import { loadSnapshot, saveSnapshot, loadQueue, saveQueue } from '../lib/offlineStore.js'
 
 const InventoryContext = createContext(null)
 
@@ -21,6 +24,10 @@ export function InventoryProvider({ userId, children }) {
   // а ті, що можна відкотити, приносять із собою спосіб це зробити.
   const [notice, setNotice] = useState(null)
   const [online, setOnline] = useState(navigator.onLine)
+  // Показано знімок із пристрою, а не свіжі дані з бази: момент знімка.
+  const [staleSince, setStaleSince] = useState(null)
+  // Операції, зроблені без мережі й ще не надіслані.
+  const [pending, setPending] = useState(() => loadQueue(userId).length)
 
   useEffect(() => {
     const up = () => setOnline(true)
@@ -33,8 +40,20 @@ export function InventoryProvider({ userId, children }) {
     }
   }, [])
 
-  const reload = useCallback(async () => {
-    setStatus('loading')
+  const notify = useCallback((text, options = {}) => {
+    setNotice({
+      text,
+      tone: options.tone ?? 'info',
+      undo: options.undo ?? null,
+      actionLabel: options.actionLabel ?? null,
+      at: Date.now(),
+    })
+  }, [])
+
+  // quiet — без скелетона: коли на екрані вже є дані (знімок чи
+  // попередня версія), миготіння порожнім екраном гірше за мить старих чисел.
+  const reload = useCallback(async ({ quiet = false } = {}) => {
+    if (!quiet) setStatus('loading')
     setError(null)
 
     const [itemsRes, catsRes] = await Promise.all([
@@ -43,15 +62,82 @@ export function InventoryProvider({ userId, children }) {
     ])
 
     if (itemsRes.error || catsRes.error) {
-      setError(itemsRes.error?.message ?? catsRes.error.message)
-      setStatus('error')
+      const message = itemsRes.error?.message ?? catsRes.error.message
+      setError(message)
+
+      // Без мережі показуємо останній знімок із пристрою разом із
+      // дотиками, які ще чекають на відправку. Помилка сервера знімком
+      // не прикривається: вона означає поломку, яку треба бачити.
+      const snapshot = isNetworkError(message, navigator.onLine) ? loadSnapshot(userId) : null
+      if (snapshot) {
+        setItems(applyQueue(snapshot.items.map(normalize), loadQueue(userId)))
+        setCategories(snapshot.categories)
+        setStaleSince(snapshot.at)
+        setStatus('ready')
+      } else {
+        setStatus('error')
+      }
       return
     }
 
     setItems(itemsRes.data.map(normalize))
     setCategories(catsRes.data)
+    setStaleSince(null)
     setStatus('ready')
-  }, [])
+  }, [userId])
+
+  // Знімок оновлюється лише зі свіжих даних і лише з порожньою чергою.
+  // Числа на екрані вже містять відкладені дотики; якби вони потрапили
+  // в знімок, при наступному відкритті черга наклалась би вдруге.
+  useEffect(() => {
+    if (status === 'ready' && !staleSince && !pending) saveSnapshot(userId, items, categories)
+  }, [status, staleSince, pending, items, categories, userId])
+
+  // Досилання відкладених операцій. Операція лишається в черзі, доки
+  // сервер її не прийняв: втратити дотик гірше, ніж надіслати пізніше.
+  // Єдиний виняток — товар, якого вже немає: повтор нічого не змінить.
+  const flushing = useRef(false)
+  const flushQueue = useCallback(async () => {
+    if (flushing.current) return
+    if (!loadQueue(userId).length) return
+
+    const { data } = await supabase.auth.getSession()
+    if (!data.session) return
+
+    flushing.current = true
+    let sent = 0
+    let dropped = 0
+    try {
+      // Черга перечитується зі сховища на кожному кроці: поки йде
+      // відправка, людина може скасувати відкладене або натиснути ще раз,
+      // і власна копія черги затерла б ці зміни.
+      for (;;) {
+        const op = loadQueue(userId)[0]
+        if (!op) break
+        const { error } = await supabase.rpc('adjust_quantity', {
+          p_item_id: op.itemId,
+          p_delta: op.delta,
+          p_kind: op.kind,
+          p_price: op.extra?.price ?? null,
+          p_place: op.extra?.place ?? null,
+          p_bucket: op.extra?.bucket ?? 'stock',
+        })
+        if (error && !/товар не знайдено/.test(error.message)) break
+        if (error) dropped += 1
+        else sent += 1
+        const rest = loadQueue(userId).filter(o => o.id !== op.id)
+        saveQueue(userId, rest)
+        setPending(rest.length)
+      }
+    } finally {
+      flushing.current = false
+    }
+    const left = loadQueue(userId).length
+
+    if (sent) notify(`Надіслано ${sent} ${plural(sent, 'операцію', 'операції', 'операцій')}, зроблених без мережі`, { tone: 'success' })
+    if (dropped) notify(`${dropped} ${plural(dropped, 'операцію', 'операції', 'операцій')} не надіслано: товар видалено`, { tone: 'error' })
+    if (left) notify('Частину операцій не надіслано. Повтор — після наступного підключення', { tone: 'error' })
+  }, [userId, notify])
 
   // Категорії за замовчуванням створюються ПЕРЕД читанням, а не паралельно:
   // інакше при першому вході список прочитається раніше, ніж заповниться.
@@ -62,11 +148,12 @@ export function InventoryProvider({ userId, children }) {
     ;(async () => {
       const { error } = await supabase.rpc('ensure_default_categories')
       if (error) console.warn('ensure_default_categories:', error.message)
+      await flushQueue()
       if (!cancelled) await reload()
     })()
 
     return () => { cancelled = true }
-  }, [reload, userId])
+  }, [reload, flushQueue, userId])
 
   // Повторюємо лише на переході «мережі не було → зʼявилась». Умова
   // без цього переходу зациклювалась: помилка вмикала повтор, повтор
@@ -75,18 +162,26 @@ export function InventoryProvider({ userId, children }) {
   useEffect(() => {
     const cameBack = online && !wasOnline.current
     wasOnline.current = online
-    if (cameBack && status === 'error') reload()
-  }, [online, status, reload])
+    if (!cameBack) return
+    if (status === 'error' || staleSince || pending) {
+      flushQueue().then(() => reload({ quiet: status === 'ready' }))
+    }
+  }, [online, status, staleSince, pending, reload, flushQueue])
 
-  const notify = useCallback((text, options = {}) => {
-    setNotice({
-      text,
-      tone: options.tone ?? 'info',
-      undo: options.undo ?? null,
-      actionLabel: options.actionLabel ?? null,
-      at: Date.now(),
-    })
-  }, [])
+  const sync = useCallback(
+    () => flushQueue().then(() => reload({ quiet: true })),
+    [flushQueue, reload])
+
+  // Сигнал «мережа зʼявилась» ненадійний: у магазині телефон буває
+  // «онлайн» без робочого звʼязку. Тому ще одна спроба — щоразу, коли
+  // застосунок повертається на екран.
+  useEffect(() => {
+    const onShow = () => {
+      if (document.visibilityState === 'visible' && navigator.onLine && (staleSince || pending)) sync()
+    }
+    document.addEventListener('visibilitychange', onShow)
+    return () => document.removeEventListener('visibilitychange', onShow)
+  }, [staleSince, pending, sync])
 
   const dismissNotice = useCallback(() => setNotice(null), [])
 
@@ -115,14 +210,28 @@ export function InventoryProvider({ userId, children }) {
     const { items: optimistic, applied: guessed } = applyDelta(items, itemId, optimisticDelta)
     setItems(optimistic)
 
-    const { data, error } = await supabase.rpc('adjust_quantity', {
-      p_item_id: itemId,
-      p_delta: delta,
-      p_kind: kind,
-      p_price: extra.price ?? null,
-      p_place: extra.place ?? null,
-      p_bucket: bucket,
-    })
+    // Без мережі запит навіть не відправляємо: у магазині зі слабким
+    // сигналом він висів би до тайм-ауту, а дотик має спрацьовувати одразу.
+    const { data, error } = navigator.onLine
+      ? await supabase.rpc('adjust_quantity', {
+          p_item_id: itemId,
+          p_delta: delta,
+          p_kind: kind,
+          p_price: extra.price ?? null,
+          p_place: extra.place ?? null,
+          p_bucket: bucket,
+        })
+      : { data: null, error: { message: 'offline' } }
+
+    if (error && isNetworkError(error, navigator.onLine)) {
+      const op = { id: crypto.randomUUID(), itemId, delta, kind, extra: { ...extra, bucket }, at: new Date().toISOString() }
+      const queue = [...loadQueue(userId), op]
+      if (saveQueue(userId, queue)) {
+        setPending(queue.length)
+        const row = optimistic.find(i => i.id === itemId) ?? before
+        return { row, applied: guessed, queued: op.id }
+      }
+    }
 
     if (error) {
       // Відкат зворотною зміною, а не поверненням до знімка:
@@ -142,7 +251,20 @@ export function InventoryProvider({ userId, children }) {
       : Number(data.in_use) - Number(before?.in_use ?? 0)
 
     return { row: data, applied }
-  }, [items])
+  }, [items, userId])
+
+  // Скасування відкладеної операції — просто прибрати її з черги
+  // і повернути число на екрані: на сервер вона ще не потрапила.
+  const unqueue = useCallback((opId, itemId, applied) => {
+    const queue = loadQueue(userId)
+    const next = queue.filter(op => op.id !== opId)
+    if (next.length === queue.length) {
+      throw new Error('Операцію вже надіслано. Скасування — через картку товару')
+    }
+    saveQueue(userId, next)
+    setPending(next.length)
+    setItems(current => applyDelta(current, itemId, -applied).items)
+  }, [userId])
 
   const adjust = useCallback(
     (itemId, delta, kind, extra) =>
@@ -154,14 +276,22 @@ export function InventoryProvider({ userId, children }) {
   // витрату, хоча помилитись легко і в поповненні, і в перерахунку.
   const adjustWithUndo = useCallback(async (itemId, delta, kind, extra = {}) => {
     const bucket = extra.bucket ?? 'stock'
-    const { row, applied } = await adjust(itemId, delta, kind, extra)
+    const { row, applied, queued } = await adjust(itemId, delta, kind, extra)
     const name = row?.name ?? ''
+
+    if (queued) {
+      notify(`Збережено на пристрої · ${name}. Буде надіслано після підключення`, {
+        undo: () => unqueue(queued, itemId, applied),
+      })
+      return row
+    }
 
     const label =
       kind === 'open'
         ? (applied > 0 ? `У користуванні · ${name}` : `Повернуто у шафу · ${name}`)
       : kind === 'restock' ? `Додано ${applied} · ${name}`
       : kind === 'correction' ? `Виправлено на ${applied > 0 ? '+' : ''}${applied} · ${name}`
+      : kind === 'discard' ? `Списано ${Math.abs(applied)} · ${name}`
       : bucket === 'in_use' ? `Скінчилось · ${name}`
       : `Витрачено ${Math.abs(applied)} · ${name}`
 
@@ -176,7 +306,41 @@ export function InventoryProvider({ userId, children }) {
       notify('Нічого не змінилось')
     }
     return row
-  }, [adjust, notify])
+  }, [adjust, notify, unqueue])
+
+  // Списання зіпсованого забирає річ цілком — і з шафи, і з користування,
+  // бо дата одна на рядок. Дві операції, але одне повідомлення й одне
+  // скасування: інакше друге повідомлення затерло б відкат першого.
+  const discard = useCallback(async itemId => {
+    const item = items.find(i => i.id === itemId)
+    if (!item) return
+    const done = []
+    for (const [bucket, amount] of [['stock', item.qty], ['in_use', item.in_use]]) {
+      if (Number(amount) <= 0) continue
+      const { applied, row } = await adjust(itemId, -Number(amount), 'discard', { bucket })
+      done.push({ bucket, applied, row })
+    }
+    if (!done.length) return notify('Нічого не змінилось')
+
+    const total = done.reduce((sum, d) => sum + Math.abs(d.applied), 0)
+    notify(`Списано ${total} · ${item.name}`, {
+      undo: async () => {
+        for (const d of done) await adjust(itemId, -d.applied, 'correction', { bucket: d.bucket })
+      },
+    })
+  }, [items, adjust, notify])
+
+  // Переведення з мілілітрів в упаковки — окрема серверна функція: це
+  // не дельта, а зміна одиниці, і кількість повз журнал не міняється.
+  const convertToPacks = useCallback(async (itemId, packSize) => {
+    const { data, error } = await supabase.rpc('convert_to_packs', {
+      p_item_id: itemId,
+      p_pack_size: packSize,
+    })
+    if (error) throw error
+    setItems(current => current.map(i => (i.id === itemId ? normalize(data) : i)))
+    return normalize(data)
+  }, [])
 
   const createItem = useCallback(async fields => {
     const { data, error } = await supabase
@@ -278,8 +442,9 @@ export function InventoryProvider({ userId, children }) {
   }, [categories, reloadCategories])
 
   const value = {
-    items, categories, status, error, online, notice,
-    reload, adjust: adjustWithUndo, notify, dismissNotice,
+    items, categories, status, error, online, notice, staleSince, pending,
+    reload, sync, adjust: adjustWithUndo, notify, dismissNotice,
+    discard, convertToPacks,
     createItem, updateItem, deleteItem, uploadPhoto, deletePhoto,
     createCategory, updateCategory, deleteCategory,
   }
@@ -296,5 +461,6 @@ function normalize(row) {
     in_use: Number(row.in_use ?? 0),
     threshold: Number(row.threshold),
     last_price: row.last_price === null ? null : Number(row.last_price),
+    pack_size: row.pack_size === null || row.pack_size === undefined ? null : Number(row.pack_size),
   }
 }

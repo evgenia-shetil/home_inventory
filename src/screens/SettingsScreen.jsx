@@ -6,9 +6,15 @@ import { planAutoSort } from '../domain/autosort.js'
 import { plural } from '../lib/plural.js'
 import Dialog from '../ui/Dialog.jsx'
 import { validatePassword, authErrorMessage } from '../domain/credentials.js'
+import { daysSince } from '../domain/backup.js'
+import { exportBackup, lastBackupAt } from '../lib/backup.js'
+import { forgetUser, lastUserId } from '../lib/offlineStore.js'
 
 export default function SettingsScreen({ email }) {
-  const { items, categories, updateItem } = useInventory()
+  const { items, categories, updateItem, notify, pending } = useInventory()
+  const [confirmSignOut, setConfirmSignOut] = useState(false)
+  const [exporting, setExporting] = useState(false)
+  const [lastBackup, setLastBackup] = useState(lastBackupAt)
   const [sorting, setSorting] = useState(false)
   const [sortResult, setSortResult] = useState(null)
   const [confirmSort, setConfirmSort] = useState(false)
@@ -40,6 +46,35 @@ export default function SettingsScreen({ email }) {
     setStatus('idle')
   }
 
+  // Знімок і черга стерті разом із сесією: на спільному пристрої
+  // чужий облік не повинен лишатись у браузері.
+  async function signOut() {
+    const userId = lastUserId()
+    const { error } = await supabase.auth.signOut()
+    if (error) return notify(error.message, { tone: 'error' })
+    if (userId) forgetUser(userId)
+  }
+
+  async function backup() {
+    setExporting(true)
+    try {
+      const { how, counts } = await exportBackup()
+      if (how === 'cancelled') {
+        notify('Копію не збережено')
+      } else {
+        setLastBackup(lastBackupAt())
+        notify(`Копію створено: ${counts.items} ${plural(counts.items, 'товар', 'товари', 'товарів')}, ${counts.events} ${plural(counts.events, 'запис', 'записи', 'записів')} журналу`,
+          { tone: 'success' })
+      }
+    } catch (err) {
+      notify(`Копію не створено: ${err.message}`, { tone: 'error' })
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  const age = daysSince(lastBackup)
+
   // Словник підказок доповнюється, тож товари, заведені раніше,
   // лишаються нерозкладеними. Тут їх можна розкласти заднім числом.
   const plan = planAutoSort(items, categories)
@@ -65,7 +100,19 @@ export default function SettingsScreen({ email }) {
   return (
     <div className="stack">
       <h1>Ще</h1>
-      <p className="muted">Обліковий запис: {email}</p>
+      <p className="muted">Обліковий запис: {email ?? 'недоступний без мережі'}</p>
+
+      <h2>Резервна копія</h2>
+      <p className="muted">
+        Товари, категорії й журнал операцій одним файлом. Фото не входять.
+        {' '}{age === null
+          ? 'На цьому пристрої копій ще не було.'
+          : age === 0 ? 'Остання копія — сьогодні.'
+          : `Остання копія — ${age} ${plural(age, 'день', 'дні', 'днів')} тому.`}
+      </p>
+      <button type="button" onClick={backup} disabled={exporting}>
+        {exporting ? 'Збирання…' : 'Зберегти копію'}
+      </button>
 
       <h2>Витрати</h2>
       <Link to="/spending"><button type="button" className="ghost">Витрати</button></Link>
@@ -114,9 +161,20 @@ export default function SettingsScreen({ email }) {
       </form>
 
       <h2>Сесія</h2>
-      <button className="ghost" onClick={() => supabase.auth.signOut()}>
+      <button className="ghost" onClick={() => (pending ? setConfirmSignOut(true) : signOut())}>
         Вийти
       </button>
+
+      {confirmSignOut && (
+        <Dialog
+          title="Вийти з акаунта?"
+          description={`${pending} ${plural(pending, 'операція ще не надіслана', 'операції ще не надіслані', 'операцій ще не надіслано')}: їх зроблено без мережі. Після виходу вони зникнуть з пристрою і в облік не потраплять.`}
+          confirmLabel="Вийти"
+          tone="danger"
+          onConfirm={() => { setConfirmSignOut(false); signOut() }}
+          onCancel={() => setConfirmSignOut(false)}
+        />
+      )}
     </div>
   )
 }

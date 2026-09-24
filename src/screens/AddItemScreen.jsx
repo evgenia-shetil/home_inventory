@@ -11,6 +11,7 @@ import CategorySelect from '../ui/CategorySelect.jsx'
 import PlaceInput from '../ui/PlaceInput.jsx'
 
 const UNITS = ['шт', 'кг', 'г', 'л', 'мл', 'пачка', 'рулон']
+const MEASURES = ['мл', 'л', 'г', 'кг']
 
 const PHOTO_NOTE = {
   loading: 'фото завантажується…',
@@ -29,6 +30,7 @@ export default function AddItemScreen() {
   const [form, setForm] = useState({
     name: '', qty: '1', unit: 'шт',
     rootId: '', childId: '', last_price: '', last_place: '',
+    pack_size: '', pack_unit: 'мл', expires_on: '',
   })
   const [file, setFile] = useState(null)
   const [photoState, setPhotoState] = useState('idle')
@@ -125,6 +127,11 @@ export default function AddItemScreen() {
         last_price: form.last_price === '' ? null : Number(form.last_price),
         last_place: form.last_place.trim() || null,
         barcode: barcode || null,
+        // Фасування описує упаковку, тож має сенс лише для штучного обліку.
+        ...(!MEASURES.includes(form.unit) && parseQty(form.pack_size) > 0
+          ? { pack_size: parseQty(form.pack_size), pack_unit: form.pack_unit }
+          : {}),
+        ...(form.expires_on ? { expires_on: form.expires_on } : {}),
       })
 
       if (file) {
@@ -193,6 +200,26 @@ export default function AddItemScreen() {
         <select value={form.unit} onChange={e => set('unit', e.target.value)}>
           {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
         </select>
+      </label>
+
+      {!MEASURES.includes(form.unit) && (
+        <div className="field">
+          Фасування, необовʼязково
+          <div className="row row--fit">
+            <input type="text" inputMode="decimal" placeholder="Обʼєм однієї упаковки"
+                   value={form.pack_size} onChange={e => set('pack_size', e.target.value)}
+                   aria-label="Обʼєм однієї упаковки" />
+            <select value={form.pack_unit} onChange={e => set('pack_unit', e.target.value)}
+                    aria-label="Одиниця фасування">
+              {MEASURES.map(u => <option key={u} value={u}>{u}</option>)}
+            </select>
+          </div>
+        </div>
+      )}
+
+      <label className="field">
+        Придатний до, необовʼязково
+        <input type="date" value={form.expires_on} onChange={e => set('expires_on', e.target.value)} />
       </label>
 
       <label className="field">

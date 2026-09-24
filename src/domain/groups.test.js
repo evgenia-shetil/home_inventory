@@ -191,3 +191,43 @@ describe('запас у шафі й у користуванні', () => {
     expect(g.inUse).toBe(0)
   })
 })
+
+describe('groupItems і терміни придатності', () => {
+  const meds = [{ id: 'm', name: 'знеболювальне', parent_id: 'r', threshold: 1 }]
+  const pill = (id, qty, expires_on) =>
+    ({ id, name: id, qty, in_use: 0, category_id: 'm', unit: 'шт', expires_on })
+  const today = '2026-09-24'
+
+  // Три упаковки прострочених ліків — це нуль упаковок
+  it('прострочене не закриває потребу', () => {
+    const [g] = groupItems([pill('старі', 3, '2026-09-01')], meds, today)
+    expect(g.total).toBe(3)
+    expect(g.expired).toBe(3)
+    expect(g.usable).toBe(0)
+    expect(g.low).toBe(true)
+  })
+
+  it('придатний запас поруч із простроченим рахується', () => {
+    const [g] = groupItems([pill('старі', 3, '2026-09-01'), pill('нові', 2, '2027-01-01')], meds, today)
+    expect(g.usable).toBe(2)
+    expect(g.low).toBe(false)
+  })
+
+  it('рахує, скільки марок скоро зіпсується', () => {
+    const [g] = groupItems([pill('а', 2, '2026-10-01'), pill('б', 2, null)], meds, today)
+    expect(g.expiringSoon).toBe(1)
+    expect(g.expired).toBe(0)
+  })
+})
+
+describe('groupItems і різні одиниці', () => {
+  it('дає розбивку за одиницями замість хибної суми', () => {
+    const shampoo = [{ id: 's', name: 'шампунь', parent_id: 'r', threshold: 1 }]
+    const [g] = groupItems([
+      { id: '1', name: 'великий', qty: 500, category_id: 's', unit: 'мл' },
+      { id: '2', name: 'дорожній', qty: 2, category_id: 's', unit: 'шт' },
+    ], shampoo)
+    expect(g.mixedUnits).toBe(true)
+    expect(g.byUnit).toEqual([{ unit: 'мл', total: 500 }, { unit: 'шт', total: 2 }])
+  })
+})
