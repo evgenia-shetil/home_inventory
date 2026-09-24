@@ -35,6 +35,9 @@ export function groupItems(items = [], categories = [], today = localDate()) {
 
     const group = groups.get(key) ?? {
       key, name, threshold, target,
+      // Нерозкладений залишок головної категорії: веде не на неї саму
+      // (це було б коло), а на перелік нерозкладеного.
+      unsortedRoot: Boolean(isUnsortedRoot),
       categoryId: category?.id ?? null,
       unit: item.unit,
       total: 0,

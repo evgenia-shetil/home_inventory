@@ -2,25 +2,27 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useInventory } from '../data/InventoryContext.jsx'
 import { groupItems } from '../domain/groups.js'
+import { shoppingGroups } from '../domain/needs.js'
+import { estimateCost } from '../domain/cost.js'
 import { searchItems } from '../domain/search.js'
 import { expiringItems } from '../domain/expiry.js'
-import { formatQty } from '../lib/format.js'
-import ItemCard from '../ui/ItemCard.jsx'
-import Qty from '../ui/Qty.jsx'
+import { rootSummaries, unsortedItems } from '../domain/home.js'
+import { formatPrice } from '../lib/format.js'
 import { plural } from '../lib/plural.js'
-import CategoryStrip from '../ui/CategoryStrip.jsx'
+import ItemCard from '../ui/ItemCard.jsx'
 import { Skeleton, Empty, ErrorState } from '../ui/States.jsx'
 import ScanIcon from '../ui/ScanIcon.jsx'
-import { IconPlus } from '../ui/icons.jsx'
+import { IconPlus, IconChevron } from '../ui/icons.jsx'
 
-const UNSORTED = '__unsorted__'
-
+// Головна — не перелік усього, а вхід: зверху те, що треба купити,
+// нижче плитки головних категорій. Відомість потреб відкривається
+// всередині категорії — так на першому екрані немає довгої прокрутки,
+// а питання «чи треба щось купити» має відповідь без жодного дотику.
 export default function StockScreen() {
-  const { items, categories, status, error, reload, adjust, notify } = useInventory()
-  const [root, setRoot] = useState(null)
+  const { items, categories, status, error, reload, consume } = useInventory()
   const [query, setQuery] = useState('')
 
-  if (status === 'loading') return <Skeleton count={5} />
+  if (status === 'loading') return <Skeleton variant="home" />
   if (status === 'error') return <ErrorState message={error} onRetry={reload} />
 
   if (items.length === 0) {
@@ -35,38 +37,14 @@ export default function StockScreen() {
     )
   }
 
-  // Під час пошуку перелік потреб недоречний: шукають конкретну річ,
+  // Під час пошуку плитки недоречні: шукають конкретну річ,
   // тож показуємо плаский список збігів.
   const found = query.trim() ? searchItems(items, query) : null
 
-  // Спершу закінчується те, що вже відкрите, і лише потім береться запас.
-  const consumeOne = id => {
-    const target = items.find(i => i.id === id)
-    const bucket = Number(target?.in_use ?? 0) > 0 ? 'in_use' : 'stock'
-    return adjust(id, -1, 'consume', { bucket })
-      .catch(err => notify(err.message, { tone: 'error' }))
-  }
-
-
-  const roots = categories.filter(c => !c.parent_id)
-
-  // Нерозкладене: товар або взагалі без категорії, або причеплений
-  // до головної, але без підкатегорії.
-  const unsorted = items.filter(item => {
-    if (!item.category_id) return true
-    const c = categories.find(x => x.id === item.category_id)
-    return Boolean(c) && !c.parent_id
-  })
-  const children = categories.filter(c => c.parent_id === root)
-
-  const inBranch = item => {
-    if (!root) return true
-    return item.category_id === root || children.some(c => c.id === item.category_id)
-  }
-
-  // Головний екран показує потреби, а не марки: рядок — це підкатегорія
-  // з підсумковою кількістю. Марки всередині відкриваються окремо.
-  const groups = groupItems(items.filter(inBranch), categories)
+  const needs = shoppingGroups(groupItems(items, categories))
+  const cost = estimateCost(needs)
+  const tiles = rootSummaries(items, categories)
+  const unsorted = unsortedItems(items, categories)
 
   const expiring = expiringItems(items)
   const expiredCount = expiring.filter(x => x.expiry.state === 'expired').length
@@ -78,7 +56,8 @@ export default function StockScreen() {
         <input
           type="search"
           value={query}
-          placeholder="Пошук"
+          placeholder="Пошук товару…"
+          aria-label="Пошук товару"
           onChange={e => setQuery(e.target.value)}
         />
         {query && (
@@ -88,93 +67,88 @@ export default function StockScreen() {
       </div>
 
       {found && (
-        <p className="muted">
-          {found.length} {plural(found.length, 'збіг', 'збіги', 'збігів')}
-        </p>
-      )}
-
-      {found && (
-        found.length
-          ? <div className="grid">
-              {found.map(item => (
-                <ItemCard
-                  key={item.id}
-                  item={item}
-                  low={false}
-                  onConsume={id => consumeOne(id)}
-                />
-              ))}
-            </div>
-          : <Empty title="Нічого не знайдено" />
-      )}
-
-
-      {!found && expiring.length > 0 && (
-        <Link to="/expiring" className="expiryrow">
-          <span>Термін придатності</span>
-          <span>
-            {expiredCount > 0 && <b>{expiredCount} {plural(expiredCount, 'прострочений', 'прострочені', 'прострочених')}</b>}
-            {expiredCount > 0 && soonCount > 0 && ', '}
-            {soonCount > 0 && `${soonCount} скоро`}
-          </span>
-        </Link>
+        <>
+          <p className="muted" aria-live="polite">
+            {found.length} {plural(found.length, 'збіг', 'збіги', 'збігів')}
+          </p>
+          {found.length
+            ? <div className="grid">
+                {found.map(item => (
+                  <ItemCard key={item.id} item={item} low={false} onConsume={consume} />
+                ))}
+              </div>
+            : <Empty title="Нічого не знайдено" />}
+        </>
       )}
 
       {!found && (
-        <CategoryStrip
-          categories={roots}
-          selected={root}
-          onSelect={setRoot}
-          extra={unsorted.length > 0
-            ? { id: UNSORTED, name: `без підкатегорії · ${unsorted.length}` }
-            : null}
-        />
-      )}
+        <>
+          <Link to="/shopping" className={`buytile${needs.length ? '' : ' buytile--calm'}`}>
+            {needs.length
+              ? <>
+                  <span className="buytile__num num">{needs.length}</span>
+                  <span className="buytile__text">
+                    <b>{plural(needs.length, 'потреба', 'потреби', 'потреб')} до покупки</b>
+                    {cost.known > 0 && <span>орієнтовно {formatPrice(cost.total)}</span>}
+                  </span>
+                </>
+              : <span className="buytile__text">
+                  <b>Список покупок</b>
+                  <span>Потреб немає</span>
+                </span>}
+            <IconChevron />
+          </Link>
 
-      {!found && root === UNSORTED && (
-        unsorted.length > 0
-          ? <>
-              <p className="muted">
-                Товари без категорії або без підкатегорії. Категорія
-                змінюється в картці товару.
-              </p>
-              <div className="grid">
-                {unsorted.map(item => (
-                  <ItemCard
-                    key={item.id}
-                    item={item}
-                    low={false}
-                    onConsume={id => consumeOne(id)}
-                  />
-                ))}
-              </div>
-            </>
-          : <Empty title="Усе розкладено" />
-      )}
+          {expiring.length > 0 && (
+            <Link to="/expiring" className="expiryrow">
+              <span className="expiryrow__text">
+                <b>Термін придатності</b>
+                <span>
+                  {[
+                    expiredCount ? `${expiredCount} ${plural(expiredCount, 'прострочений', 'прострочені', 'прострочених')}` : null,
+                    soonCount ? `${soonCount} ${plural(soonCount, 'спливає', 'спливають', 'спливають')} за місяць` : null,
+                  ].filter(Boolean).join(', ')}
+                </span>
+              </span>
+              <IconChevron />
+            </Link>
+          )}
 
-      {!found && root !== UNSORTED && <ul className="groups">
-        {groups.map(group => (
-          <li key={group.key}>
-            <Link
-              to={group.categoryId ? `/category/${group.categoryId}` : `/item/${group.items[0].id}`}
-              className={`group${group.low ? ' group--low' : ''}`}
-            >
-              <span className="group__name">{group.name}</span>
-              <span className="group__meta">
-                {group.expired > 0 && <span className="group__flag">прострочено</span>}
-                {group.mixedUnits
-                  ? <span className="qty">{group.byUnit.map(u => formatQty(u.total, u.unit)).join(' + ')}</span>
-                  : <Qty value={group.total} unit={group.unit} />}
-                {group.categoryId && group.items.length > 1 && (
-                  <span className="group__count">
-                    {group.items.length} {plural(group.items.length, 'товар', 'товари', 'товарів')}
+          <nav className="tiles" aria-label="Категорії">
+            {tiles.map(({ category, groups, needs: n, expired }) => (
+              <Link
+                key={category.id}
+                to={`/category/${category.id}`}
+                className={`tile${n ? ' tile--low' : ''}`}
+              >
+                <span className="tile__name">{category.name}</span>
+                <span className="tile__meta">
+                  {groups === 0
+                    ? 'порожньо'
+                    : `${groups} ${plural(groups, 'позиція', 'позиції', 'позицій')}`}
+                </span>
+                {(n > 0 || expired > 0) && (
+                  <span className="tile__flags">
+                    {n > 0 && <span>купити {n}</span>}
+                    {expired > 0 && <span>прострочено {expired}</span>}
                   </span>
                 )}
-              </span>
-            </Link>
-          </li>
-        ))}
-      </ul>}
+              </Link>
+            ))}
+
+            {/* Службова плитка: без неї нерозкладені товари губляться,
+                і знайти їх можна лише перебором категорій. */}
+            {unsorted.length > 0 && (
+              <Link to="/unsorted" className="tile tile--extra">
+                <span className="tile__name">Без категорії</span>
+                <span className="tile__meta">
+                  {unsorted.length} {plural(unsorted.length, 'товар', 'товари', 'товарів')}
+                </span>
+              </Link>
+            )}
+          </nav>
+        </>
+      )}
 
       <div className="fabs">
         <Link to="/add" className="fab fab--small" aria-label="Додати товар вручну"><IconPlus /></Link>

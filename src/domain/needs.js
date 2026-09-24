@@ -17,3 +17,9 @@ export function shoppingGroups(groups = []) {
     }))
     .filter(group => group.items.length > 0)
 }
+
+// Та сама умова, що й у списку покупок: інакше головна підсвічувала б
+// як нестачу лампочку, якої в покупках свідомо немає.
+export function isNeed(group) {
+  return Boolean(group?.low) && group.items.some(item => item.recurring !== false)
+}

@@ -13,6 +13,7 @@ import CategoriesScreen from './screens/CategoriesScreen.jsx'
 import CategoryScreen from './screens/CategoryScreen.jsx'
 import SpendingScreen from './screens/SpendingScreen.jsx'
 import ExpiryScreen from './screens/ExpiryScreen.jsx'
+import UnsortedScreen from './screens/UnsortedScreen.jsx'
 import BottomNav from './ui/BottomNav.jsx'
 import Toast from './ui/Toast.jsx'
 import UpdateWatcher from './ui/UpdateWatcher.jsx'
@@ -57,6 +58,7 @@ export default function App() {
           <Route path="/category/:id" element={<CategoryScreen />} />
           <Route path="/spending" element={<SpendingScreen />} />
           <Route path="/expiring" element={<ExpiryScreen />} />
+          <Route path="/unsorted" element={<UnsortedScreen />} />
           <Route path="/item/:id" element={<ItemScreen />} />
           <Route path="/settings" element={<SettingsScreen email={session?.user.email ?? null} />} />
         </Routes>

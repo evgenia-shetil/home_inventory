@@ -1,4 +1,17 @@
-export function Skeleton({ count = 4 }) {
+// Скелетон повторює форму екрана, який вантажиться: сітка високих
+// карток на місці плиток і рядків читалась як інший екран.
+export function Skeleton({ count = 4, variant = 'grid' }) {
+  if (variant === 'home') {
+    return (
+      <div className="stack" aria-hidden="true">
+        <div className="skeleton skeleton--bar" />
+        <div className="skeleton skeleton--buy" />
+        <div className="tiles">
+          {Array.from({ length: 6 }, (_, i) => <div key={i} className="skeleton skeleton--tile" />)}
+        </div>
+      </div>
+    )
+  }
   return (
     <div className="grid">
       {Array.from({ length: count }, (_, i) => (

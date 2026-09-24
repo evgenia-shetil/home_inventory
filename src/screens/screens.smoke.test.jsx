@@ -79,6 +79,7 @@ const screens = {
   ItemScreen: (await import('./ItemScreen.jsx')).default,
   CategoryScreen: (await import('./CategoryScreen.jsx')).default,
   ExpiryScreen: (await import('./ExpiryScreen.jsx')).default,
+  UnsortedScreen: (await import('./UnsortedScreen.jsx')).default,
   SettingsScreen: (await import('./SettingsScreen.jsx')).default,
   AddItemScreen: (await import('./AddItemScreen.jsx')).default,
   SpendingScreen: (await import('./SpendingScreen.jsx')).default,
@@ -116,12 +117,21 @@ async function render(path, pattern, Screen, props = {}) {
 }
 
 describe('екрани рендеряться з реальною формою даних', () => {
-  it('головна: потреби, позначка простроченого й рядок термінів', async () => {
+  it('головна: плашка покупок, плитки категорій і рядок термінів', async () => {
     const text = await render('/', '/', screens.StockScreen)
+    expect(text).toMatch(/1\s*потреба до покупки/)
     expect(text).toContain('Термін придатності')
-    expect(text).toContain('прострочено')
+    expect(text).toContain('обличчя')
+    expect(text).toContain('прострочено 1')
+    expect(text).toContain('Без категорії')
+    // Потреби видно на плитці, а не переліком усіх підкатегорій.
+    expect(text).not.toContain('вмивання')
+  })
+
+  it('головна категорія — перелік її потреб з розбивкою одиниць', async () => {
+    const text = await render('/category/root', '/category/:id', screens.CategoryScreen)
     expect(text).toContain('ліки')
-    // Змішані одиниці показуються розбивкою, а не хибною сумою.
+    expect(text).toContain('вмивання')
     expect(text).toMatch(/150 мл \+ 3 шт/)
   })
 
@@ -153,7 +163,8 @@ describe('екрани рендеряться з реальною формою �
   it('екран категорії', async () => {
     const text = await render('/category/wash', '/category/:id', screens.CategoryScreen)
     expect(text).toContain('вмивання')
-    expect(text).toContain('різні одиниці')
+    expect(text).toContain('Різні одиниці')
+    expect(text).not.toContain('мл у користуванні')
   })
 
   it('погляд «Термін придатності»', async () => {
@@ -173,6 +184,11 @@ describe('екрани рендеряться з реальною формою �
     const text = await render('/add', '/add', screens.AddItemScreen)
     expect(text).toContain('Фасування')
     expect(text).toContain('Придатний до')
+  })
+
+  it('нерозкладене', async () => {
+    const text = await render('/unsorted', '/unsorted', screens.UnsortedScreen)
+    expect(text).toContain('Лампочка')
   })
 
   it('витрати', async () => {

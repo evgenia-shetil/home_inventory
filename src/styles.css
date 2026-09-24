@@ -644,7 +644,7 @@ details.edit .stack { gap: 12px; }
    як ще одну категорію. */
 .chip--extra { border-style: dashed; }
 
-.screenhead { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.screenhead { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
 .screenhead h1 { margin: 4px 0; }
 .iconbtn {
   /* min-height обовʼязково: глобальне button { min-height: 48px }
@@ -726,8 +726,88 @@ details.edit .stack { gap: 12px; }
   display: flex; justify-content: space-between; align-items: center; gap: 12px;
   margin-bottom: 12px; padding: 12px 16px;
   border-radius: var(--radius); background: var(--surface);
-  border-left: 4px solid var(--warn);
+  box-shadow: inset 4px 0 0 var(--warn);
   color: inherit; text-decoration: none; font-size: 15px;
 }
 .expiryrow b { font-weight: 600; }
 .card__expiry { margin: 0; font-size: 13px; font-weight: 600; color: var(--warn); }
+
+/* ── Головна: плашка покупок і плитки категорій ───────────────────── */
+
+/* Плашка покупок — головна дія екрана, тому єдина залита акцентом.
+   Число потреб — найбільший елемент: на питання «чи треба щось купити»
+   відповідь видно без жодного дотику. */
+.buytile {
+  display: flex; align-items: center; gap: 14px;
+  margin: 0 0 12px; padding: 16px 16px 16px 18px;
+  min-height: 76px;
+  border-radius: var(--radius);
+  background: var(--accent); color: var(--on-accent);
+  text-decoration: none;
+}
+.buytile__num { font-size: 40px; font-weight: 700; line-height: 1; }
+.buytile__text { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.buytile__text b { font-size: 17px; font-weight: 650; }
+.buytile__text span { font-size: 14px; opacity: .85; }
+.buytile svg { flex: 0 0 auto; }
+/* Коли купувати нічого, плашка не кричить: лишається входом у список. */
+.buytile--calm { background: var(--surface); color: var(--text); }
+.buytile--calm .buytile__text span { color: var(--muted); opacity: 1; }
+
+.expiryrow__text { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.expiryrow__text b { font-weight: 650; }
+.expiryrow__text span { font-size: 14px; color: var(--warn); }
+.expiryrow svg { flex: 0 0 auto; color: var(--muted); }
+
+/* Плитки — обʼєкти, в які заходять, тож це картки, а не рядки відомості.
+   Нестача позначена тією самою смугою з краю, що й у переліку потреб,
+   і продубльована текстом: колір не буває єдиною ознакою. */
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+.tile {
+  display: flex; flex-direction: column; gap: 4px;
+  min-height: 104px; padding: 14px 16px;
+  border-radius: var(--radius);
+  background: var(--surface); color: var(--text);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+.tile__name { font-size: 17px; font-weight: 650; line-height: 1.2; letter-spacing: -0.01em; }
+.tile__meta { font-size: 14px; color: var(--muted); }
+.tile__flags {
+  margin-top: auto; display: flex; flex-wrap: wrap; gap: 4px 10px;
+  font-size: 13px; font-weight: 600; color: var(--warn);
+}
+.tile--low { box-shadow: inset 4px 0 0 var(--warn); }
+.tile--extra { background: transparent; border: 1px dashed var(--line-strong); }
+
+.buytile:active, .tile:active, .group:active, .expiryrow:active { filter: brightness(.96); }
+
+/* ── Екран потреби: цифра як заголовок ───────────────────────────── */
+.needhead { margin: 4px 0 16px; }
+.needhead__qty .qty__num { font-size: 40px; font-weight: 700; }
+.needhead__qty .qty__unit { font-size: 17px; }
+.needhead--low .qty__num { color: var(--warn); }
+.needhead__facts {
+  list-style: none; margin: 6px 0 0; padding: 0;
+  display: flex; flex-direction: column; gap: 2px;
+  color: var(--muted); font-size: 15px;
+}
+
+/* Пояснення, а не тривога: попередження жовтогарячим на пів екрана
+   забирало увагу в самих даних. */
+.note {
+  margin: 0 0 16px; padding: 12px 14px;
+  border-radius: var(--radius); background: var(--surface);
+  font-size: 14px; color: var(--muted);
+}
+
+.skeleton--bar { height: 50px; border-radius: var(--radius-control); }
+.skeleton--buy { height: 76px; border-radius: var(--radius); }
+.skeleton--tile { height: 104px; border-radius: var(--radius); }
+
+/* Подвійний тап масштабує сторінку і з'їдає швидкі послідовні «−1». */
+a, button, input, select, label, summary { touch-action: manipulation; }

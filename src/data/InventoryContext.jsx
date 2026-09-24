@@ -342,6 +342,15 @@ export function InventoryProvider({ userId, children }) {
     return normalize(data)
   }, [])
 
+  // Головна дія застосунку. Спершу закінчується те, що вже відкрите,
+  // і лише потім береться запас із шафи. Одна реалізація на всі екрани.
+  const consume = useCallback(itemId => {
+    const target = items.find(i => i.id === itemId)
+    const bucket = Number(target?.in_use ?? 0) > 0 ? 'in_use' : 'stock'
+    return adjustWithUndo(itemId, -1, 'consume', { bucket })
+      .catch(err => notify(err.message, { tone: 'error' }))
+  }, [items, adjustWithUndo, notify])
+
   const createItem = useCallback(async fields => {
     const { data, error } = await supabase
       .from('items')
@@ -444,7 +453,7 @@ export function InventoryProvider({ userId, children }) {
   const value = {
     items, categories, status, error, online, notice, staleSince, pending,
     reload, sync, adjust: adjustWithUndo, notify, dismissNotice,
-    discard, convertToPacks,
+    consume, discard, convertToPacks,
     createItem, updateItem, deleteItem, uploadPhoto, deletePhoto,
     createCategory, updateCategory, deleteCategory,
   }

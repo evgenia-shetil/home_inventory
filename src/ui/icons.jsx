@@ -38,3 +38,7 @@ export const IconEdit = () => (
 export const IconPlus = () => (
   <svg {...base} width="24" height="24"><path {...stroke} d="M12 5v14M5 12h14" /></svg>
 )
+
+export const IconChevron = () => (
+  <svg {...base} width="20" height="20"><path {...stroke} d="M9 6l6 6-6 6" /></svg>
+)
