@@ -4,14 +4,15 @@ import { useInventory } from '../data/InventoryContext.jsx'
 import { groupItems } from '../domain/groups.js'
 import { shoppingGroups } from '../domain/needs.js'
 import { estimateCost } from '../domain/cost.js'
-import { searchItems } from '../domain/search.js'
+import { searchItems, searchCategories } from '../domain/search.js'
 import { expiringItems } from '../domain/expiry.js'
-import { rootSummaries, unsortedItems } from '../domain/home.js'
+import { rootSummaries, unsortedItems, branchItems } from '../domain/home.js'
 import { dueReplacements } from '../domain/plan.js'
 import { localDate } from '../domain/expiry.js'
 import { formatPrice } from '../lib/format.js'
 import { plural } from '../lib/plural.js'
 import ItemCard from '../ui/ItemCard.jsx'
+import Qty from '../ui/Qty.jsx'
 import { Skeleton, Empty, ErrorState } from '../ui/States.jsx'
 import ScanIcon from '../ui/ScanIcon.jsx'
 import { IconPlus, IconChevron } from '../ui/icons.jsx'
@@ -42,6 +43,8 @@ export default function StockScreen() {
   // Під час пошуку плитки недоречні: шукають конкретну річ,
   // тож показуємо плаский список збігів.
   const found = query.trim() ? searchItems(items, query) : null
+  const foundCats = query.trim() ? searchCategories(categories, query) : []
+  const parentName = c => categories.find(p => p.id === c.parent_id)?.name
 
   const needs = shoppingGroups(groupItems(items, categories))
   const cost = estimateCost(needs)
@@ -61,8 +64,8 @@ export default function StockScreen() {
         <input
           type="search"
           value={query}
-          placeholder="Пошук товару…"
-          aria-label="Пошук товару"
+          placeholder="Пошук товару чи категорії…"
+          aria-label="Пошук товару чи категорії"
           onChange={e => setQuery(e.target.value)}
         />
         {query && (
@@ -74,15 +77,50 @@ export default function StockScreen() {
       {found && (
         <>
           <p className="muted" aria-live="polite">
-            {found.length} {plural(found.length, 'збіг', 'збіги', 'збігів')}
+            {found.length + foundCats.length} {plural(found.length + foundCats.length, 'збіг', 'збіги', 'збігів')}
           </p>
-          {found.length
-            ? <div className="grid">
-                {found.map(item => (
-                  <ItemCard key={item.id} item={item} low={false} onConsume={consume} />
-                ))}
-              </div>
-            : <Empty title="Нічого не знайдено" />}
+
+          {/* Спершу потреби: шукаючи «паста», шукають зубну пасту взагалі,
+              а марка може бути названа без цього слова. */}
+          {foundCats.length > 0 && (
+            <ul className="groups search__cats">
+              {foundCats.map(c => {
+                const inside = c.parent_id
+                  ? items.filter(i => i.category_id === c.id)
+                  : branchItems(c.id, items, categories)
+                const [g] = c.parent_id ? groupItems(inside, categories) : []
+                return (
+                  <li key={c.id}>
+                    <Link to={`/category/${c.id}`} className="group">
+                      <span className="group__name">
+                        {c.name}
+                        <small className="group__sub">
+                          {c.parent_id ? `у «${parentName(c)}»` : 'категорія'}
+                        </small>
+                      </span>
+                      <span className="group__meta">
+                        {g
+                          ? <Qty value={g.total} unit={g.unit} />
+                          : <span className="group__count">
+                              {inside.length} {plural(inside.length, 'товар', 'товари', 'товарів')}
+                            </span>}
+                      </span>
+                    </Link>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+
+          {found.length > 0 && (
+            <div className="grid">
+              {found.map(item => (
+                <ItemCard key={item.id} item={item} low={false} onConsume={consume} />
+              ))}
+            </div>
+          )}
+
+          {found.length + foundCats.length === 0 && <Empty title="Нічого не знайдено" />}
         </>
       )}
 

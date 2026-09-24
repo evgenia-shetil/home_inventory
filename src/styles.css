@@ -920,3 +920,5 @@ a, button, input, select, label, summary { touch-action: manipulation; }
 .photofield__actions { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; justify-content: center; }
 .photofield__actions .filepick { min-height: 44px; }
 .photofield__actions .link { align-self: flex-start; min-height: 32px; }
+.mismatch { display: block; font-weight: 400; font-size: 13px; }
+.search__cats { margin-bottom: 12px; }

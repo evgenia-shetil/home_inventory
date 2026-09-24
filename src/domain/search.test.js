@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { searchItems } from './search.js'
+import { searchItems, searchCategories } from './search.js'
 
 const items = [
   { id: '1', name: 'Exfoliating tonic Biotrade' },
@@ -27,5 +27,26 @@ describe('searchItems', () => {
 
   it('порожній результат, коли нічого не збіглось', () => {
     expect(searchItems(items, 'шампунь')).toEqual([])
+  })
+})
+
+describe('searchCategories', () => {
+  const cats = [
+    { id: 'face', name: 'обличчя', parent_id: null },
+    { id: 'paste', name: 'зубна паста', parent_id: 'face' },
+    { id: 'brush', name: 'зубна щітка', parent_id: 'face' },
+    { id: 'teeth', name: 'зуби', parent_id: null },
+  ]
+
+  it('знаходить підкатегорію за частиною слова', () => {
+    expect(searchCategories(cats, 'паст').map(c => c.id)).toEqual(['paste'])
+  })
+
+  it('підкатегорії попереду головних', () => {
+    expect(searchCategories(cats, 'зуб').map(c => c.id)).toEqual(['paste', 'brush', 'teeth'])
+  })
+
+  it('порожній запит — нічого', () => {
+    expect(searchCategories(cats, '  ')).toEqual([])
   })
 })
