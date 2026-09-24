@@ -73,10 +73,19 @@ maybe('терміни й фасування', () => {
     expect(data.pack_unit).toBe('мл')
     expect(Number(data.last_price)).toBe(100)
 
-    const event = await lastEvent(item.id)
-    expect(event.kind).toBe('unit')
-    expect(Number(event.delta)).toBe(0)
-    expect(event.note).toContain('1500 мл')
+    // З 0017 переведення пише реальну зміну обох лічильників, щоб сума
+    // журналу й далі дорівнювала полиці.
+    const { data: unit } = await db.from('events').select('*')
+      .eq('item_id', item.id).eq('kind', 'unit')
+    expect(unit).toHaveLength(2)
+    expect(unit.reduce((s, e) => s + Number(e.delta), 0)).toBe(3 - 1500)
+    expect(unit[0].note).toContain('1500 мл')
+  })
+
+  it('журнал тестового акаунта збігається з полицею', async () => {
+    const { data, error } = await db.rpc('journal_mismatches')
+    expect(error).toBeNull()
+    expect(data).toEqual([])
   })
 
   it('не переводить те, що вже рахується штуками', async () => {
