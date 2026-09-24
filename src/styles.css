@@ -922,3 +922,15 @@ a, button, input, select, label, summary { touch-action: manipulation; }
 .photofield__actions .link { align-self: flex-start; min-height: 32px; }
 .mismatch { display: block; font-weight: 400; font-size: 13px; }
 .search__cats { margin-bottom: 12px; }
+
+/* Екран норм: відомість, де в кожному рядку — два числа й перемикач. */
+.norms { list-style: none; padding: 0; margin: 8px 0 0; background: var(--surface); border-radius: var(--radius); overflow: hidden; }
+.norms li + li { border-top: 1px solid var(--line); }
+.norm-row { display: flex; flex-direction: column; gap: 8px; padding: 12px 16px; }
+.norm-row__name { font-weight: 600; }
+.norm-row__name small { display: block; font-weight: 400; font-size: 13px; }
+.norm-row__name .link { padding: 0; min-height: 0; font-size: inherit; color: var(--accent); text-decoration: underline; }
+.norm-row__inputs { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted); }
+.norm-row__inputs input { width: 64px; flex: 0 0 64px; padding: 10px 8px; text-align: center; color: var(--text); }
+.norm-row__schedule { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted); min-height: 32px; }
+.norm-row__schedule input { width: 20px; height: 20px; flex: 0 0 20px; }

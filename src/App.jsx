@@ -1,24 +1,31 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { Routes, Route, useLocation } from 'react-router-dom'
 import { supabase } from './lib/supabase.js'
 import { InventoryProvider } from './data/InventoryContext.jsx'
 import LoginScreen from './screens/LoginScreen.jsx'
 import StockScreen from './screens/StockScreen.jsx'
 import ShoppingScreen from './screens/ShoppingScreen.jsx'
-import AddItemScreen from './screens/AddItemScreen.jsx'
 import ItemScreen from './screens/ItemScreen.jsx'
-import SettingsScreen from './screens/SettingsScreen.jsx'
-import ScanScreen from './screens/ScanScreen.jsx'
-import CategoriesScreen from './screens/CategoriesScreen.jsx'
 import CategoryScreen from './screens/CategoryScreen.jsx'
-import SpendingScreen from './screens/SpendingScreen.jsx'
-import ExpiryScreen from './screens/ExpiryScreen.jsx'
-import UnsortedScreen from './screens/UnsortedScreen.jsx'
+import { Skeleton } from './ui/States.jsx'
 import BottomNav from './ui/BottomNav.jsx'
 import Toast from './ui/Toast.jsx'
 import UpdateWatcher from './ui/UpdateWatcher.jsx'
 import NetworkBanner from './ui/NetworkBanner.jsx'
 import { lastUserId } from './lib/offlineStore.js'
+
+// Щоденні екрани (запаси, покупки, категорія, картка) — у головному файлі:
+// вони потрібні одразу. Решта відкривається зрідка і вантажиться окремими
+// шматками, щоб перше відкриття на мобільному інтернеті було швидшим.
+// Без мережі вони однаково є: service worker зберігає всі шматки наперед.
+const AddItemScreen = lazy(() => import('./screens/AddItemScreen.jsx'))
+const SettingsScreen = lazy(() => import('./screens/SettingsScreen.jsx'))
+const ScanScreen = lazy(() => import('./screens/ScanScreen.jsx'))
+const CategoriesScreen = lazy(() => import('./screens/CategoriesScreen.jsx'))
+const SpendingScreen = lazy(() => import('./screens/SpendingScreen.jsx'))
+const ExpiryScreen = lazy(() => import('./screens/ExpiryScreen.jsx'))
+const UnsortedScreen = lazy(() => import('./screens/UnsortedScreen.jsx'))
+const NormsScreen = lazy(() => import('./screens/NormsScreen.jsx'))
 
 // Новий екран відкривається згори. HashRouter цього не робить сам, і
 // екран успадковував прокрутку попереднього — «Ще» відкривалось із середини.
@@ -58,6 +65,7 @@ export default function App() {
     <InventoryProvider userId={userId}>
       <ScrollToTop />
       <main className="screen">
+        <Suspense fallback={<Skeleton count={3} />}>
         <Routes>
           <Route path="/" element={<StockScreen />} />
           <Route path="/shopping" element={<ShoppingScreen />} />
@@ -68,9 +76,11 @@ export default function App() {
           <Route path="/spending" element={<SpendingScreen />} />
           <Route path="/expiring" element={<ExpiryScreen />} />
           <Route path="/unsorted" element={<UnsortedScreen />} />
+          <Route path="/norms" element={<NormsScreen />} />
           <Route path="/item/:id" element={<ItemScreen />} />
           <Route path="/settings" element={<SettingsScreen email={session?.user.email ?? null} />} />
         </Routes>
+        </Suspense>
       </main>
       <NetworkBanner />
       <Toast />

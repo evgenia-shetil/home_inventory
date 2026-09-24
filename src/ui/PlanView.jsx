@@ -85,8 +85,8 @@ export default function PlanView({ horizon, journal }) {
           <h2>Темп невідомий</h2>
           <p className="muted">
             Без норми й без історії в журналі не порахувати, скільки знадобиться.
-            Норма задається на екрані підкатегорії: ⋯ → Норма витрачання.
           </p>
+          <Link to="/norms" className="linkline">Задати норми</Link>
           <ul className="groups">
             {plan.unknown.map(({ group }) => (
               <li key={group.key}>

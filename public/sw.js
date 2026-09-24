@@ -8,8 +8,8 @@
 // - сторінка — спершу мережа, кеш лише як запасний шлях;
 // - version.json — завжди мережа, інакше UpdateWatcher осліп би;
 // - зібрані файли мають хеш у назві й не змінюються — кеш назавжди.
-const SHELL = 'zapasy-shell-v1'
-const ASSETS = 'zapasy-assets-v1'
+const SHELL = 'zapasy-shell-v2'
+const ASSETS = 'zapasy-assets-v2'
 const FONTS = 'zapasy-fonts-v1'
 const KNOWN = [SHELL, ASSETS, FONTS]
 const MAX_ASSETS = 60
@@ -46,9 +46,22 @@ async function precache() {
   await shell.put(BASE, response.clone())
 
   const html = await response.text()
-  const urls = [...html.matchAll(/(?:src|href)="([^"]*\/assets\/[^"]+)"/g)].map(m => m[1])
+  const urls = new Set([...html.matchAll(/(?:src|href)="([^"]*\/assets\/[^"]+)"/g)].map(m => m[1]))
+
+  // Екрани, що відкриваються зрідка, лежать в окремих шматках, і
+  // index.html на них не посилається. Без цього переліку екран, який ще
+  // не відкривали, без мережі не завантажився б.
+  try {
+    const manifest = await (await fetch(`${BASE}asset-manifest.json`, { cache: 'no-store' })).json()
+    for (const entry of Object.values(manifest)) {
+      for (const file of [entry.file, ...(entry.css ?? [])]) if (file) urls.add(BASE + file)
+    }
+  } catch {
+    // Немає переліку — зберігаємо хоча б те, на що посилається сторінка.
+  }
+
   const assets = await caches.open(ASSETS)
-  await assets.addAll(urls)
+  await assets.addAll([...urls])
   await shell.addAll([`${BASE}manifest.webmanifest`, `${BASE}icon-192.png`])
 }
 
@@ -59,7 +72,8 @@ self.addEventListener('fetch', event => {
 
   if (url.origin === self.location.origin) {
     if (!url.pathname.startsWith(BASE)) return
-    if (url.pathname.endsWith('/version.json') || url.pathname.endsWith('/sw.js')) return
+    if (url.pathname.endsWith('/version.json') || url.pathname.endsWith('/sw.js') ||
+        url.pathname.endsWith('/asset-manifest.json')) return
 
     if (request.mode === 'navigate') {
       event.respondWith(networkFirst(request))

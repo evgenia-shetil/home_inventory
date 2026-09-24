@@ -86,6 +86,7 @@ const screens = {
   CategoryScreen: (await import('./CategoryScreen.jsx')).default,
   ExpiryScreen: (await import('./ExpiryScreen.jsx')).default,
   UnsortedScreen: (await import('./UnsortedScreen.jsx')).default,
+  NormsScreen: (await import('./NormsScreen.jsx')).default,
   SettingsScreen: (await import('./SettingsScreen.jsx')).default,
   AddItemScreen: (await import('./AddItemScreen.jsx')).default,
   SpendingScreen: (await import('./SpendingScreen.jsx')).default,
@@ -218,6 +219,13 @@ describe('екрани рендеряться з реальною формою �
     const text = await render('/add', '/add', screens.AddItemScreen)
     expect(text).toContain('Фасування')
     expect(text).toContain('Придатний до')
+  })
+
+  it('норми всіх підкатегорій одним списком', async () => {
+    const text = await render('/norms', '/norms', screens.NormsScreen)
+    expect(text).toContain('Норми')
+    expect(text).toContain('зубна щітка')
+    expect(text).toMatch(/1\s*підкатегорія без норми/)
   })
 
   it('нерозкладене', async () => {

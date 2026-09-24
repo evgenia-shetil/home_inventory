@@ -155,6 +155,7 @@ export const supabase = {
   from: table => query(table),
   rpc: (name, args) => {
     if (name === 'adjust_quantity') return delay(adjust(args))
+    if (name === 'journal_mismatches') return delay({ data: [], error: null })
     return delay({ data: null, error: null })
   },
   auth: {

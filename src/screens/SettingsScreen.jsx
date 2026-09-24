@@ -120,6 +120,7 @@ export default function SettingsScreen({ email }) {
       <h2>Розділи</h2>
       <ul className="navlist">
         <li><Link to="/categories">Категорії<IconChevron /></Link></li>
+        <li><Link to="/norms">Норми витрачання<IconChevron /></Link></li>
         <li><Link to="/spending">Витрати<IconChevron /></Link></li>
         <li><Link to="/expiring">Термін придатності<IconChevron /></Link></li>
       </ul>

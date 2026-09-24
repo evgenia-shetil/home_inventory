@@ -22,7 +22,7 @@ const MEASURES = ['мл', 'л', 'г', 'кг']
 const KIND_LABEL = {
   consume: 'витрата', restock: 'поповнення',
   correction: 'виправлення', open: 'взято в користування',
-  discard: 'списано зіпсоване', unit: 'зміна одиниці',
+  discard: 'списано зіпсоване', unit: 'зміна одиниці', opening: 'початковий залишок',
 }
 
 const longDate = iso =>

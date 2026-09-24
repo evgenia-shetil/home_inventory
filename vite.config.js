@@ -12,6 +12,10 @@ const buildId = String(Date.now())
 export default defineConfig(({ mode }) => ({
   base: '/home_inventory/',
   define: { __BUILD_ID__: JSON.stringify(buildId) },
+  // Перелік усіх зібраних файлів — для service worker: він зберігає їх
+  // наперед, щоб і відкладені шматки екранів працювали без мережі. Не в
+  // .vite/: теки з крапкою не потрапляють в артефакт GitHub Pages.
+  build: { manifest: 'asset-manifest.json' },
   plugins: [
     react(),
     // Демо-режим: справжній клієнт Supabase підміняється базою в памʼяті,
