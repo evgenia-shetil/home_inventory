@@ -351,17 +351,48 @@ export function InventoryProvider({ userId, children }) {
       .catch(err => notify(err.message, { tone: 'error' }))
   }, [items, adjustWithUndo, notify])
 
+  // Товар створюється з нулем, а початкова кількість іде в журнал подією
+  // 'opening'. Інакше сума журналу не збігалась би з полицею, і ні
+  // перевірити облік, ні відновити його з журналу було б неможливо.
   const createItem = useCallback(async fields => {
+    const { qty = 0, ...rest } = fields
     const { data, error } = await supabase
       .from('items')
-      .insert({ ...fields, user_id: userId })
+      .insert({ ...rest, qty: 0, user_id: userId })
       .select()
       .single()
     if (error) throw error
-    const item = normalize(data)
+
+    let row = data
+    if (Number(qty) > 0) {
+      const res = await supabase.rpc('adjust_quantity', {
+        p_item_id: data.id, p_delta: Number(qty), p_kind: 'opening',
+        p_price: null, p_place: null, p_bucket: 'stock',
+      })
+      // Товар уже створено: не губимо його через невдалий залишок, а
+      // кажемо прямо, що кількість треба виправити в картці.
+      // Повторне «Зберегти» створило б дубль, тож не кидаємо помилку, а
+      // повідомляємо й повертаємо товар як є.
+      if (res.error) {
+        const item = normalize(data)
+        setItems(current => [...current, item])
+        notify(`Товар збережено з нулем: ${res.error.message}. Кількість виправляється в картці.`, { tone: 'error' })
+        return item
+      }
+      row = res.data
+    }
+
+    const item = normalize(row)
     setItems(current => [...current, item])
     return item
-  }, [userId])
+  }, [userId, notify])
+
+  // Перевірка цілісності: товари, у яких полиця не дорівнює сумі журналу.
+  const checkJournal = useCallback(async () => {
+    const { data, error } = await supabase.rpc('journal_mismatches')
+    if (error) throw error
+    return data ?? []
+  }, [])
 
   const updateItem = useCallback(async (itemId, fields) => {
     const { data, error } = await supabase
@@ -487,7 +518,7 @@ export function InventoryProvider({ userId, children }) {
     items, categories, status, error, online, notice, staleSince, pending,
     reload, sync, adjust: adjustWithUndo, notify, dismissNotice,
     consume, discard, convertToPacks, replace,
-    createItem, updateItem, deleteItem, uploadPhoto, deletePhoto,
+    createItem, checkJournal, updateItem, deleteItem, uploadPhoto, deletePhoto,
     createCategory, updateCategory, deleteCategory,
   }
 
