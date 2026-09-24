@@ -909,3 +909,14 @@ a, button, input, select, label, summary { touch-action: manipulation; }
 .replacerow__text span { font-size: 14px; color: var(--muted); }
 .replacerow button { width: auto; flex: 0 0 auto; padding: 0 14px; min-height: 44px; }
 .replacerow__text { color: inherit; text-decoration: none; }
+
+/* Фото в формі нового товару: превʼю зліва, дії справа. */
+.photofield { display: flex; gap: 14px; align-items: stretch; }
+.photofield__preview {
+  width: 96px; height: 96px; flex: 0 0 96px;
+  object-fit: cover; border-radius: 8px;
+}
+.photofield__preview small { font-size: 12px; font-weight: 500; opacity: .8; }
+.photofield__actions { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; justify-content: center; }
+.photofield__actions .filepick { min-height: 44px; }
+.photofield__actions .link { align-self: flex-start; min-height: 32px; }

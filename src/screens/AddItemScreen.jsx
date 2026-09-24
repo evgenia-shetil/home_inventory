@@ -9,6 +9,7 @@ import { parseQty } from '../domain/quantity.js'
 import QtyInput from '../ui/QtyInput.jsx'
 import CategorySelect from '../ui/CategorySelect.jsx'
 import PlaceInput from '../ui/PlaceInput.jsx'
+import { hue } from '../lib/hue.js'
 
 const UNITS = ['шт', 'кг', 'г', 'л', 'мл', 'пачка', 'рулон']
 const MEASURES = ['мл', 'л', 'г', 'кг']
@@ -42,6 +43,16 @@ export default function AddItemScreen() {
   const [error, setError] = useState(null)
 
   const set = (key, value) => setForm(f => ({ ...f, [key]: value }))
+
+  // Посилання на обраний файл живе, доки файл обраний: інакше кожна
+  // заміна фото лишала б у памʼяті попереднє зображення.
+  const [previewUrl, setPreviewUrl] = useState(null)
+  useEffect(() => {
+    if (!file) { setPreviewUrl(null); return }
+    const url = URL.createObjectURL(file)
+    setPreviewUrl(url)
+    return () => URL.revokeObjectURL(url)
+  }, [file])
 
   // Прийшли з екрана категорії — вона вже обрана, і підказка не втручається.
   // Застосовується РІВНО ОДИН РАЗ: масив categories отримує нову
@@ -180,10 +191,15 @@ export default function AddItemScreen() {
       {/* Дві окремі дії: з capture телефон одразу відкриває камеру й не дає
           обрати знімок із галереї, а без нього на частині Android камера
           ховається глибоко в меню. */}
-      <div className="field">
-        Фото
-        {file && <span className="filepick__name">{file.name}</span>}
-        <div className="row">
+      {/* Превʼю — щоб перед збереженням було видно, що саме обрано:
+          назва файлу з камери («IMG_4821.jpg») не каже нічого. */}
+      <div className="photofield">
+        {previewUrl
+          ? <img src={previewUrl} alt="Обране фото" className="photofield__preview" width="96" height="96" />
+          : <div className="avatar photofield__preview" style={{ '--hue': hue(form.name) }} aria-hidden="true">
+              {form.name.trim() ? form.name.trim().charAt(0).toUpperCase() : <small>без фото</small>}
+            </div>}
+        <div className="photofield__actions">
           <label className="filepick">
             Зробити фото
             <input type="file" accept="image/*" capture="environment" hidden onChange={pickPhoto} />
@@ -192,6 +208,12 @@ export default function AddItemScreen() {
             Обрати з галереї
             <input type="file" accept="image/*" hidden onChange={pickPhoto} />
           </label>
+          {file && (
+            <button type="button" className="link link--danger"
+                    onClick={() => { setFile(null); setPhotoState('idle') }}>
+              Прибрати фото
+            </button>
+          )}
         </div>
       </div>
 
