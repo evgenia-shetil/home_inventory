@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, useLocation } from 'react-router-dom'
 import { supabase } from './lib/supabase.js'
 import { InventoryProvider } from './data/InventoryContext.jsx'
 import LoginScreen from './screens/LoginScreen.jsx'
@@ -19,6 +19,14 @@ import Toast from './ui/Toast.jsx'
 import UpdateWatcher from './ui/UpdateWatcher.jsx'
 import NetworkBanner from './ui/NetworkBanner.jsx'
 import { lastUserId } from './lib/offlineStore.js'
+
+// Новий екран відкривається згори. HashRouter цього не робить сам, і
+// екран успадковував прокрутку попереднього — «Ще» відкривалось із середини.
+function ScrollToTop() {
+  const { pathname } = useLocation()
+  useEffect(() => { window.scrollTo(0, 0) }, [pathname])
+  return null
+}
 
 export default function App() {
   const [session, setSession] = useState(undefined)
@@ -48,6 +56,7 @@ export default function App() {
 
   return (
     <InventoryProvider userId={userId}>
+      <ScrollToTop />
       <main className="screen">
         <Routes>
           <Route path="/" element={<StockScreen />} />

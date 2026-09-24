@@ -119,7 +119,7 @@ async function render(path, pattern, Screen, props = {}) {
 describe('екрани рендеряться з реальною формою даних', () => {
   it('головна: плашка покупок, плитки категорій і рядок термінів', async () => {
     const text = await render('/', '/', screens.StockScreen)
-    expect(text).toMatch(/1\s*потреба до покупки/)
+    expect(text).toMatch(/1\s*потреба у покупках/)
     expect(text).toContain('Термін придатності')
     expect(text).toContain('обличчя')
     expect(text).toContain('прострочено 1')

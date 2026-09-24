@@ -7,7 +7,7 @@ import { estimateCost } from '../domain/cost.js'
 import { bestOffer } from '../domain/prices.js'
 import { useJournal } from '../lib/journal.js'
 import { upcoming, formatDuration } from '../domain/forecast.js'
-import { formatQty, formatPrice } from '../lib/format.js'
+import { formatQty, formatPrice, formatNumber } from '../lib/format.js'
 import { Skeleton, Empty, ErrorState } from '../ui/States.jsx'
 
 export default function ShoppingScreen() {
@@ -48,7 +48,7 @@ export default function ShoppingScreen() {
 
   return (
     <>
-      <h1>Купити</h1>
+      <h1>Покупки</h1>
       <dl className="summary">
         <div>
           <dt>Потреб</dt>
@@ -90,14 +90,7 @@ export default function ShoppingScreen() {
                 і назва товару — буквально одне й те саме. Якщо ж група є
                 категорією, вона каже чого бракує, а товар — якої марки. */}
             {group.categoryId && <p className="shopping__name">{group.name}</p>}
-            <p className="muted">
-              лишилось {formatQty(group.usable, group.unit)}
-              {group.inUse > 0 && ` (${formatQty(group.inUse, group.unit)} у користуванні)`}
-              {group.expired > 0 && `, ще ${formatQty(group.expired, group.unit)} прострочено`}
-              {toBuy(group) !== null
-                ? ` · взяти ${formatQty(toBuy(group), group.unit)}`
-                : `, поріг ${formatQty(group.threshold, group.unit)}`}
-            </p>
+            <p className="muted">{describeNeed(group)}</p>
 
             <OfferHint group={group} events={journal.events} />
 
@@ -183,4 +176,17 @@ function OfferHint({ group, events }) {
       {offer.byVolume && ` (${formatPrice(offer.perUnit * 100)} за 100 ${offer.item.pack_unit})`}
     </p>
   )
+}
+
+// Зі змішаними одиницями одиниця групи — лише одиниця першої марки,
+// тож частини суми підписуються без неї, щоб не писати «1 мл» про штуку.
+function describeNeed(group) {
+  const q = value => (group.mixedUnits ? formatNumber(value) : formatQty(value, group.unit))
+  const buy = toBuy(group)
+  return [
+    `лишилось ${q(group.usable)}`,
+    group.inUse > 0 ? `з них ${q(group.inUse)} у користуванні` : null,
+    group.expired > 0 ? `ще ${q(group.expired)} прострочено` : null,
+    buy !== null ? `взяти ${q(buy)}` : `сигнал на ${q(group.threshold)}`,
+  ].filter(Boolean).join(', ')
 }

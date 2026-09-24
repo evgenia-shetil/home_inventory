@@ -106,7 +106,15 @@ export default function CategoriesScreen() {
           <IconTrash />
         </button>
       </div>
+      {/* Числа згорнуто в один рядок: дві повні панелі зі стрілками на
+          кожну підкатегорію робили екран стіною форм. Розкриваються,
+          коли їх справді міняють. */}
       {!isRoot && (
+        <details className="cat__more">
+          <summary>
+            сигнал {thresholdValue(category)}
+            {targetValue(category) !== '' && `, запас ${targetValue(category)}`}
+          </summary>
         <div className="cat__numbers">
           <div className="cat__threshold">
             <span className="muted">сигнал, коли всього лишиться</span>
@@ -125,6 +133,7 @@ export default function CategoriesScreen() {
             />
           </div>
         </div>
+        </details>
       )}
     </div>
   )

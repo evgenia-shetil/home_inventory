@@ -1,4 +1,7 @@
 :root {
+  /* Нативні поля (дата, список, прокрутка) беруть тему з цього рядка:
+     без нього в темній темі вони лишались світлими плямами. */
+  color-scheme: light dark;
   /* Нейтральні виведені з синього, а не з теплого кремового: акцент
      має бути рідним для палітри, а не накладеним на чужий відтінок. */
   --bg: #eef1f5;
@@ -7,6 +10,14 @@
   --muted: #5c6672;
   --line: #dde3ea;
   --line-strong: #828b98;
+  /* Друга поверхня — для щоденних дій усередині картки. Заливка
+     протилежним кольором робила «−1» найяскравішим елементом екрана,
+     яскравішим за саму плашку покупок. */
+  --surface-2: #e3e8ee;
+  /* Літера-заглушка: у світлій темі пастель, у темній — приглушений тон. */
+  --tint-l: 82%;
+  --tint-s: 45%;
+  --tint-fg-l: 30%;
 
   --accent: #1f5fa9;
   --success: #2f6d5b;
@@ -33,6 +44,10 @@
     --muted: #9aa6b4;
     --line: #28313c;
     --line-strong: #6e7a88;
+    --surface-2: #26303b;
+    --tint-l: 26%;
+    --tint-s: 25%;
+    --tint-fg-l: 80%;
 
     --accent: #6fa8dc;
     --success: #4e9c81;
@@ -116,6 +131,10 @@ button {
 }
 
 button:disabled { opacity: .5; }
+/* Відгук на натискання: без нього на телефоні не видно, чи дотик
+   зарахувався, і людина тисне вдруге. */
+button, .fab, .buytile, .tile, .group, .expiryrow, .navlist a { transition: filter .12s ease; }
+button:active:not(:disabled), .fab:active { filter: brightness(.9); }
 .muted { color: var(--muted); }
 .error { color: var(--warn); }
 
@@ -140,10 +159,11 @@ button:disabled { opacity: .5; }
 
 .card__link { text-decoration: none; color: inherit; padding: 6px; flex: 1; display: block; }
 .card__photo { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 6px; display: block; }
-.card__photo--letter {
-  background: var(--tint);
+.card__photo--letter, .avatar {
+  background: hsl(var(--hue) var(--tint-s) var(--tint-l));
+  color: hsl(var(--hue) 35% var(--tint-fg-l));
   display: grid; place-items: center;
-  font-size: 30px; font-weight: 700; color: rgba(0,0,0,.45);
+  font-size: 30px; font-weight: 700;
 }
 .card__name {
   font-size: 12.5px; font-weight: 500; color: var(--muted); margin: 5px 0 1px; line-height: 1.25;
@@ -162,9 +182,9 @@ button:disabled { opacity: .5; }
 .card__consume {
   border-radius: 0;
   min-height: 44px;
-  font-size: 18px;
-  background: var(--invert-bg);
-  color: var(--invert-fg);
+  font-size: 18px; font-weight: 700;
+  background: var(--surface-2);
+  color: var(--text);
 }
 
 .strip { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 12px; }
@@ -292,19 +312,35 @@ button:disabled { opacity: .5; }
    різниці між службовою кнопкою і тою, що стирає товар і його історію. */
 .ghost--danger { color: var(--warn); border-color: var(--warn); }
 
-.hero { width: 100%; aspect-ratio: 4/3; object-fit: cover; border-radius: var(--radius); }
-.hero--empty {
-  display: grid; place-items: center;
-  background: var(--line); color: var(--muted); cursor: pointer;
+/* Шапка картки товару: мініатюра, назва-заголовок, дії з фото. */
+.itemhead { display: flex; gap: 14px; align-items: flex-start; }
+.itemhead__photo {
+  width: 88px; height: 88px; flex: 0 0 88px;
+  object-fit: cover; border-radius: 8px;
 }
+.itemhead__main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.itemhead__main p { margin: 0; font-size: 14px; }
+.itemhead__title { margin: 0; }
+/* Поле, що виглядає як заголовок, доки його не почали редагувати. */
+.itemhead__title input {
+  font: inherit; letter-spacing: inherit;
+  padding: 2px 6px; margin-left: -6px; width: calc(100% + 6px);
+  border: 1px solid transparent; background: transparent;
+}
+.itemhead__title input:hover { border-color: var(--line); }
+.itemhead__title input:focus { border-color: var(--line-strong); background: var(--surface); }
 .facts { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; margin: 0; }
 .facts dt { color: var(--muted); font-size: 14px; }
 .facts dd { margin: 0; text-align: right; font-weight: 600; }
 .history { list-style: none; padding: 0; margin: 0; }
 .history li {
-  display: grid; grid-template-columns: 60px 1fr auto;
+  display: grid; grid-template-columns: 52px 1fr auto;
   gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--line);
+  align-items: baseline;
 }
+.history__delta { font-weight: 650; }
+.history__what small { display: block; font-size: 13px; }
+.history time { font-size: 13px; white-space: nowrap; }
 
 .shopping { list-style: none; padding: 0; margin: 0; }
 .shopping > li {
@@ -358,6 +394,8 @@ button:disabled { opacity: .5; }
   gap: 12px;
 }
 .fabs .fab { position: static; }
+/* Плаваючі кнопки не мають накривати останній рядок списку. */
+.screen:has(.fabs) { padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 140px); }
 .fab--small {
   width: 44px; height: 44px;
   background: var(--surface);
@@ -369,9 +407,9 @@ button:disabled { opacity: .5; }
 .consume {
   width: auto;
   padding: 12px 28px;
-  font-size: 20px;
-  background: var(--invert-bg);
-  color: var(--invert-fg);
+  font-size: 20px; font-weight: 700;
+  background: var(--surface-2);
+  color: var(--text);
 }
 
 .linkline { color: var(--accent); text-decoration: underline; }
@@ -460,11 +498,15 @@ button:disabled { opacity: .5; }
 }
 .brand__meta b { color: var(--text); font-weight: 650; font-size: 14px; }
 /* Головна дія екрана «Купити»: закриває цикл прямо тут, без заходу в картку. */
+/* Контурна, а не залита: у списку їх десяток, і шість однакових
+   синіх блоків перекрикували самі назви потреб. */
 .brand__buy {
   width: auto; flex: 0 0 auto;
-  padding: 0 14px; min-height: 0;
-  font-size: 13px; font-weight: 600;
-  border-radius: 10px;
+  padding: 0 14px; min-height: 44px;
+  font-size: 14px; font-weight: 600;
+  border-radius: var(--radius-control);
+  background: transparent; color: var(--accent);
+  border: 1px solid var(--accent);
 }
 
 /* Головний екран: перелік потреб */
@@ -673,14 +715,8 @@ details.edit .stack { gap: 12px; }
 .summary dt { font-size: 12px; color: var(--muted); margin-bottom: 1px; }
 .summary dd { margin: 0; font-size: 19px; font-weight: 650; }
 
-.photoactions { display: flex; align-items: center; gap: 8px; }
-.photoactions__pick {
-  flex: 1;
-  display: grid; place-items: center;
-  min-height: 48px; padding: 0 14px;
-  border: 1px solid var(--line-strong); border-radius: var(--radius-control);
-  font-weight: 600; cursor: pointer;
-}
+.photoactions { display: flex; align-items: center; gap: 16px; }
+.photoactions .link { cursor: pointer; min-height: 44px; display: inline-flex; align-items: center; }
 
 /* Порівняння цін: таблиця, бо це справді табличні дані — магазин
    проти магазину, і цифри мають стояти одна під одною. */
@@ -811,3 +847,27 @@ details.edit .stack { gap: 12px; }
 
 /* Подвійний тап масштабує сторінку і з'їдає швидкі послідовні «−1». */
 a, button, input, select, label, summary { touch-action: manipulation; }
+
+/* Перелік розділів у «Ще»: та сама відомість, що й перелік потреб. */
+.navlist {
+  list-style: none; padding: 0; margin: 0;
+  background: var(--surface); border-radius: var(--radius); overflow: hidden;
+}
+.navlist li + li { border-top: 1px solid var(--line); }
+.navlist a {
+  display: flex; align-items: center; justify-content: space-between;
+  min-height: 52px; padding: 0 16px;
+  color: inherit; text-decoration: none; font-weight: 550;
+}
+.navlist svg { color: var(--muted); }
+.navlist a:active { filter: brightness(.96); }
+
+.cat__more > summary {
+  cursor: pointer; list-style: none;
+  display: inline-flex; align-items: center; min-height: 36px;
+  font-size: 14px; color: var(--muted);
+}
+.cat__more > summary::-webkit-details-marker { display: none; }
+.cat__more > summary::after { content: '›'; margin-left: 6px; transition: transform .15s ease; }
+.cat__more[open] > summary::after { transform: rotate(90deg); }
+.cat__more[open] > summary { color: var(--text); }

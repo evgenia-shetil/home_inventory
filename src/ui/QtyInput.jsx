@@ -1,4 +1,5 @@
-import { stepQty } from '../domain/quantity.js'
+import { stepQty, parseQty } from '../domain/quantity.js'
+import { unitLabel } from '../lib/format.js'
 
 // Поле кількості зі стрілками. На телефоні влучити в кнопку легше,
 // ніж у вузьке текстове поле й дрібні нативні стрілки браузера.
@@ -30,7 +31,7 @@ export default function QtyInput({ value, onChange, onCommit, min = 0, unit }) {
         aria-label="Кількість"
       />
 
-      {unit && <span className="qtyinput__unit">{unit}</span>}
+      {unit && <span className="qtyinput__unit">{unitLabel(parseQty(value), unit)}</span>}
 
       <button
         type="button" className="qtyinput__btn"

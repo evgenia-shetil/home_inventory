@@ -54,14 +54,23 @@ export default function LoginScreen() {
     <main className="screen center">
       <h1>Запаси</h1>
       <form onSubmit={signInWithPassword} className="stack">
-        <input
-          type="email" required value={email} placeholder="Пошта"
-          autoComplete="username" onChange={e => setEmail(e.target.value)}
-        />
-        <input
-          type="password" required value={password} placeholder="Пароль"
-          autoComplete="current-password" onChange={e => setPassword(e.target.value)}
-        />
+        {/* Підписи над полями, а не лише placeholder: він зникає з
+            першою літерою, і автозаповнене поле неможливо впізнати. */}
+        <label className="field">
+          Пошта
+          <input
+            type="email" name="email" required value={email}
+            autoComplete="username" spellCheck={false} autoCapitalize="none"
+            onChange={e => setEmail(e.target.value)}
+          />
+        </label>
+        <label className="field">
+          Пароль
+          <input
+            type="password" name="password" required value={password}
+            autoComplete="current-password" onChange={e => setPassword(e.target.value)}
+          />
+        </label>
         <button type="submit" disabled={status === 'busy'}>
           {status === 'busy' ? 'Вхід…' : 'Увійти'}
         </button>

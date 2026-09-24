@@ -7,6 +7,15 @@ describe('formatQty', () => {
     expect(formatQty('3.00', 'шт')).toBe('3 шт')
   })
 
+  it('відмінює повні слова, а скорочення лишає', () => {
+    expect(formatQty(3, 'рулон')).toBe('3 рулони')
+    expect(formatQty(12, 'рулон')).toBe('12 рулонів')
+    expect(formatQty(1, 'пачка')).toBe('1 пачка')
+    expect(formatQty(5, 'пачка')).toBe('5 пачок')
+    expect(formatQty(1.5, 'рулон')).toBe('1,5 рулону')
+    expect(formatQty(5, 'шт')).toBe('5 шт')
+  })
+
   it('лишає дробову частину, коли вона значуща', () => {
     expect(formatQty(1.5, 'кг')).toBe('1,5 кг')
   })

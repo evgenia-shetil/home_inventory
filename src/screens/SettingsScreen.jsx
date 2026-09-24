@@ -5,6 +5,7 @@ import { useInventory } from '../data/InventoryContext.jsx'
 import { planAutoSort } from '../domain/autosort.js'
 import { plural } from '../lib/plural.js'
 import Dialog from '../ui/Dialog.jsx'
+import { IconChevron } from '../ui/icons.jsx'
 import { validatePassword, authErrorMessage } from '../domain/credentials.js'
 import { daysSince } from '../domain/backup.js'
 import { exportBackup, lastBackupAt } from '../lib/backup.js'
@@ -114,11 +115,14 @@ export default function SettingsScreen({ email }) {
         {exporting ? 'Збирання…' : 'Зберегти копію'}
       </button>
 
-      <h2>Витрати</h2>
-      <Link to="/spending"><button type="button" className="ghost">Витрати</button></Link>
-
-      <h2>Категорії</h2>
-      <Link to="/categories"><button type="button" className="ghost">Категорії</button></Link>
+      {/* Розділи — рядки-посилання, як відомість на головних екранах.
+          Раніше кожен був заголовком і кнопкою з тим самим текстом. */}
+      <h2>Розділи</h2>
+      <ul className="navlist">
+        <li><Link to="/categories">Категорії<IconChevron /></Link></li>
+        <li><Link to="/spending">Витрати<IconChevron /></Link></li>
+        <li><Link to="/expiring">Термін придатності<IconChevron /></Link></li>
+      </ul>
 
       {plan.length > 0 && (
         <>
@@ -127,7 +131,7 @@ export default function SettingsScreen({ email }) {
             можна розподілити автоматично: {plan.slice(0, 3).map(p => p.name).join(', ')}
             {plan.length > 3 ? ' та інші' : ''}.
           </p>
-          <button type="button" onClick={() => setConfirmSort(true)} disabled={sorting}>
+          <button type="button" className="ghost" onClick={() => setConfirmSort(true)} disabled={sorting}>
             {sorting ? 'Розподіл…' : 'Розподілити по підкатегоріях'}
           </button>
         </>
@@ -146,6 +150,10 @@ export default function SettingsScreen({ email }) {
 
       <form onSubmit={changePassword} className="stack">
         <h2>Пароль</h2>
+        {/* Менеджер паролів привʼязує новий пароль до логіна з цього поля:
+            без нього він не знав, для якого акаунта зберігати. */}
+        <input type="email" name="username" autoComplete="username"
+               value={email ?? ''} readOnly hidden />
         <label className="field">
           Новий пароль
           <input
@@ -156,7 +164,7 @@ export default function SettingsScreen({ email }) {
         {error && <p className="error">{error}</p>}
         {message && <p className="muted">{message}</p>}
         <button type="submit" disabled={status === 'busy'}>
-          {status === 'busy' ? 'Збереження…' : 'Зберегти'}
+          {status === 'busy' ? 'Збереження…' : 'Змінити пароль'}
         </button>
       </form>
 

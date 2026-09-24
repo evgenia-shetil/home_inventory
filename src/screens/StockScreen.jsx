@@ -88,12 +88,12 @@ export default function StockScreen() {
               ? <>
                   <span className="buytile__num num">{needs.length}</span>
                   <span className="buytile__text">
-                    <b>{plural(needs.length, 'потреба', 'потреби', 'потреб')} до покупки</b>
+                    <b>{plural(needs.length, 'потреба', 'потреби', 'потреб')} у покупках</b>
                     {cost.known > 0 && <span>орієнтовно {formatPrice(cost.total)}</span>}
                   </span>
                 </>
               : <span className="buytile__text">
-                  <b>Список покупок</b>
+                  <b>Покупки</b>
                   <span>Потреб немає</span>
                 </span>}
             <IconChevron />

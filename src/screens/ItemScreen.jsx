@@ -3,12 +3,14 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase.js'
 import { usePhotoUrl } from '../lib/photos.js'
 import { useInventory } from '../data/InventoryContext.jsx'
-import { formatQty, formatPrice } from '../lib/format.js'
+import { formatQty, formatPrice, formatNumber } from '../lib/format.js'
 import { collectPlaces } from '../domain/places.js'
 import { pricesByPlace } from '../domain/prices.js'
 import { expiryState, describeExpiry, mergeExpiry } from '../domain/expiry.js'
 import { parseQty, correctionDelta } from '../domain/quantity.js'
 import QtyInput from '../ui/QtyInput.jsx'
+import Qty from '../ui/Qty.jsx'
+import { hue } from '../lib/hue.js'
 import PlaceInput from '../ui/PlaceInput.jsx'
 import CategorySelect from '../ui/CategorySelect.jsx'
 import Dialog from '../ui/Dialog.jsx'
@@ -34,7 +36,7 @@ export default function ItemScreen() {
   const navigate = useNavigate()
   const {
     items, categories, adjust, deleteItem, uploadPhoto, deletePhoto, updateItem, notify,
-    discard, convertToPacks,
+    discard, convertToPacks, consume,
   } = useInventory()
   const item = items.find(i => i.id === id)
   const places = collectPlaces(items)
@@ -177,67 +179,73 @@ export default function ItemScreen() {
     <div className="stack">
       <button className="back" onClick={() => navigate(-1)}>← назад</button>
 
-      {photoUrl
-        ? <img src={photoUrl} alt="" className="hero" />
-        : <div className="hero hero--empty" aria-hidden="true">Фото немає</div>}
+      {/* Назва — заголовок екрана, але редагується на місці, як і скрізь.
+          Фото — мініатюра: більшість товарів його не має, і порожній
+          прямокутник на третину екрана відсував головне — кількість. */}
+      <header className="itemhead">
+        {photoUrl
+          ? <img src={photoUrl} alt="" className="itemhead__photo" width="88" height="88" />
+          : <div className="avatar itemhead__photo" style={{ '--hue': hue(item.name) }} aria-hidden="true">
+              {(item.name ?? '?').trim().charAt(0).toUpperCase()}
+            </div>}
+        <div className="itemhead__main">
+          <h1 className="itemhead__title">
+            <input
+              value={name}
+              aria-label="Назва товару"
+              onChange={e => setName(e.target.value)}
+              onBlur={() => {
+                const next = name.trim()
+                if (next && next !== item.name) save({ name: next }, 'Назву збережено', 'success')
+                else setName(item.name)
+              }}
+            />
+          </h1>
+          {item.pack_size && <p className="muted">по {formatQty(item.pack_size, item.pack_unit)}</p>}
+          {/* Без capture система сама пропонує камеру або бібліотеку —
+              раніше вибір із галереї був неможливий. */}
+          <div className="photoactions">
+            <label className="link">
+              {photoUrl ? 'Замінити фото' : 'Додати фото'}
+              <input type="file" accept="image/*" hidden
+                     onChange={e => {
+                       const f = e.target.files?.[0]
+                       if (!f) return
+                       uploadPhoto(item.id, f)
+                         .then(() => notify('Фото збережено', { tone: 'success' }))
+                         .catch(err => notify(err.message, { tone: 'error' }))
+                     }} />
+            </label>
+            {photoUrl && (
+              <button type="button" className="link link--danger" onClick={() =>
+                deletePhoto(item.id)
+                  .then(() => notify('Фото видалено', { tone: 'success' }))
+                  .catch(err => notify(err.message, { tone: 'error' }))
+              }>
+                Видалити
+              </button>
+            )}
+          </div>
+        </div>
+      </header>
 
-      {/* Без capture система сама пропонує камеру або бібліотеку —
-          раніше вибір із галереї був неможливий. */}
-      <div className="photoactions">
-        <label className="ghost photoactions__pick">
-          {photoUrl ? 'Замінити фото' : 'Додати фото'}
-          <input type="file" accept="image/*" hidden
-                 onChange={e => {
-                   const f = e.target.files?.[0]
-                   if (!f) return
-                   uploadPhoto(item.id, f)
-                     .then(() => notify('Фото збережено', { tone: 'success' }))
-                     .catch(err => notify(err.message, { tone: 'error' }))
-                 }} />
-        </label>
-
-        {photoUrl && (
-          <button type="button" className="link link--danger" onClick={() =>
-            deletePhoto(item.id)
-              .then(() => notify('Фото видалено', { tone: 'success' }))
-              .catch(err => notify(err.message, { tone: 'error' }))
-          }>
-            Видалити фото
-          </button>
-        )}
-      </div>
-
-      <label className="field">
-        Назва
-        <input
-          value={name}
-          onChange={e => setName(e.target.value)}
-          onBlur={() => {
-            const next = name.trim()
-            if (next && next !== item.name) save({ name: next }, 'Назву збережено', 'success')
-            else setName(item.name)
-          }}
-        />
-      </label>
-
+      {/* Цифра — головний елемент картки, «−1» — поруч із нею. */}
       <div className="qtyrow">
-        <p className="card__qty">{formatQty(item.qty + inUse, item.unit)}</p>
+        <Qty value={item.qty + inUse} unit={item.unit} className="needhead__qty" />
         <button
           className="consume"
           disabled={item.qty + inUse <= 0 || busy}
-          onClick={() => adjust(item.id, -1, 'consume',
-            { bucket: inUse > 0 ? 'in_use' : 'stock' })
-            .catch(err => notify(err.message, { tone: 'error' }))}
+          aria-label={`Витратити одну одиницю: ${item.name}`}
+          onClick={() => consume(item.id)}
         >
           −1
         </button>
       </div>
 
-      <div className="usebar">
-        <span>У шафі {formatQty(item.qty, item.unit)}</span>
-        <span>·</span>
-        <span>У користуванні {formatQty(inUse, item.unit)}</span>
-      </div>
+      <ul className="needhead__facts">
+        <li>у шафі {formatQty(item.qty, item.unit)}</li>
+        <li>у користуванні {formatQty(inUse, item.unit)}</li>
+      </ul>
 
       {expiry?.state === 'expired' && (
         <div className="alert">
@@ -271,9 +279,6 @@ export default function ItemScreen() {
         <dt>Ціна за одиницю</dt><dd>{formatPrice(item.last_price)}</dd>
         <dt>Де куплено</dt><dd>{item.last_place ?? '—'}</dd>
         <dt>Категорія</dt><dd>{current?.name ?? 'без категорії'}</dd>
-        {item.pack_size && (
-          <><dt>Фасування</dt><dd>{formatQty(item.pack_size, item.pack_unit)}</dd></>
-        )}
         <dt>Придатний до</dt>
         <dd className={expiry && expiry.state !== 'ok' ? 'expiry--warn' : ''}>
           {item.expires_on
@@ -293,7 +298,7 @@ export default function ItemScreen() {
           <h2>Ціни за магазинами</h2>
           <table className="prices">
             <thead>
-              <tr><th>Магазин</th><th>Остання</th><th>Найнижча</th></tr>
+              <tr><th>Магазин</th><th>Ціна</th></tr>
             </thead>
             <tbody>
               {prices.map(p => (
@@ -302,8 +307,12 @@ export default function ItemScreen() {
                     {p.place ?? <span className="muted">не вказано</span>}
                     <small className="muted">{shortDate(p.at)}</small>
                   </td>
-                  <td className="num">{formatPrice(p.price)}</td>
-                  <td className="num muted">{p.min === p.price ? '—' : formatPrice(p.min)}</td>
+                  {/* Найнижча ціна — примітка лише там, де вона відрізняється:
+                      окремий стовпець майже завжди стояв порожнім. */}
+                  <td className="num">
+                    {formatPrice(p.price)}
+                    {p.min !== p.price && <small className="muted">було {formatPrice(p.min)}</small>}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -476,19 +485,24 @@ export default function ItemScreen() {
         : <ul className="history">
             {events.map(e => (
               <li key={e.id}>
-                <span>{e.kind === 'unit' ? '⇄' : Number(e.delta) > 0 ? `+${e.delta}` : e.delta}</span>
-                <span className="muted">
+                <span className="history__delta num">
+                  {e.kind === 'unit' ? '⇄' : Number(e.delta) > 0 ? `+${formatNumber(e.delta)}` : formatNumber(e.delta)}
+                </span>
+                {/* Два рядки замість ланцюжка через крапки: що сталось —
+                    головне, ціна й магазин — підпис під ним. */}
+                <span className="history__what">
                   {KIND_LABEL[e.kind] ?? e.kind}
-                  {e.note && `: ${e.note}`}
-                  {e.bucket === 'in_use' && ' (з користування)'}
-                  {e.price !== null && e.price !== undefined && ` · ${formatPrice(e.price)}`}
-                  {e.place && ` · ${e.place}`}
+                  {e.bucket === 'in_use' && ' з користування'}
+                  {(e.note || e.price !== null && e.price !== undefined || e.place) && (
+                    <small className="muted">
+                      {[e.note, e.price !== null && e.price !== undefined ? formatPrice(e.price) : null, e.place]
+                        .filter(Boolean).join(', ')}
+                    </small>
+                  )}
                 </span>
-                <span className="muted">
-                  {new Date(e.created_at).toLocaleDateString('uk-UA', {
-                    day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
-                  })}
-                </span>
+                <time className="muted" dateTime={e.created_at}>
+                  {new Date(e.created_at).toLocaleDateString('uk-UA', { day: 'numeric', month: 'short' })}
+                </time>
               </li>
             ))}
           </ul>}

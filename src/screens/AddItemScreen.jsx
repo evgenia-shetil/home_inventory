@@ -202,26 +202,6 @@ export default function AddItemScreen() {
         </select>
       </label>
 
-      {!MEASURES.includes(form.unit) && (
-        <div className="field">
-          Фасування, необовʼязково
-          <div className="row row--fit">
-            <input type="text" inputMode="decimal" placeholder="Обʼєм однієї упаковки"
-                   value={form.pack_size} onChange={e => set('pack_size', e.target.value)}
-                   aria-label="Обʼєм однієї упаковки" />
-            <select value={form.pack_unit} onChange={e => set('pack_unit', e.target.value)}
-                    aria-label="Одиниця фасування">
-              {MEASURES.map(u => <option key={u} value={u}>{u}</option>)}
-            </select>
-          </div>
-        </div>
-      )}
-
-      <label className="field">
-        Придатний до, необовʼязково
-        <input type="date" value={form.expires_on} onChange={e => set('expires_on', e.target.value)} />
-      </label>
-
       <label className="field">
         Категорія
         <CategorySelect
@@ -244,17 +224,43 @@ export default function AddItemScreen() {
         />
       </label>
 
-      <div className="row">
-        <label className="field">
-          Ціна за одиницю
-          <input type="number" inputMode="decimal" step="0.01" min="0"
-                 value={form.last_price} onChange={e => set('last_price', e.target.value)} />
-        </label>
-        <label className="field">
-          Де куплено
-          <PlaceInput value={form.last_place} places={places} onChange={v => set('last_place', v)} />
-        </label>
-      </div>
+      {/* Щоб завести товар, досить назви й кількості. Решта потрібна
+          не щоразу, тож сховано: десять полів підряд виглядали як анкета. */}
+      <details className="edit">
+        <summary>Додатково: фасування, термін, ціна</summary>
+        <div className="stack">
+          {!MEASURES.includes(form.unit) && (
+            <div className="field">
+              Фасування
+              <div className="row row--fit">
+                <input type="text" inputMode="decimal" placeholder="Обʼєм однієї упаковки"
+                       value={form.pack_size} onChange={e => set('pack_size', e.target.value)}
+                       aria-label="Обʼєм однієї упаковки" />
+                <select value={form.pack_unit} onChange={e => set('pack_unit', e.target.value)}
+                        aria-label="Одиниця фасування">
+                  {MEASURES.map(u => <option key={u} value={u}>{u}</option>)}
+                </select>
+              </div>
+            </div>
+          )}
+
+          <label className="field">
+            Придатний до
+            <input type="date" value={form.expires_on} onChange={e => set('expires_on', e.target.value)} />
+          </label>
+          <div className="row">
+            <label className="field">
+              Ціна за одиницю
+              <input type="number" inputMode="decimal" step="0.01" min="0"
+                     value={form.last_price} onChange={e => set('last_price', e.target.value)} />
+            </label>
+            <label className="field">
+              Де куплено
+              <PlaceInput value={form.last_place} places={places} onChange={v => set('last_place', v)} />
+            </label>
+          </div>
+        </div>
+      </details>
 
       {error && <p className="error">{error}</p>}
 
