@@ -351,6 +351,8 @@ export function InventoryProvider({ userId, children }) {
       .catch(err => notify(err.message, { tone: 'error' }))
   }, [items, adjustWithUndo, notify])
 
+  // Початкову кількість у журнал пише сама база (тригер, міграція 0018):
+  // правило цілісності не може залежати від того, що зробить клієнт.
   const createItem = useCallback(async fields => {
     const { data, error } = await supabase
       .from('items')
@@ -362,6 +364,13 @@ export function InventoryProvider({ userId, children }) {
     setItems(current => [...current, item])
     return item
   }, [userId])
+
+  // Перевірка цілісності: товари, у яких полиця не дорівнює сумі журналу.
+  const checkJournal = useCallback(async () => {
+    const { data, error } = await supabase.rpc('journal_mismatches')
+    if (error) throw error
+    return data ?? []
+  }, [])
 
   const updateItem = useCallback(async (itemId, fields) => {
     const { data, error } = await supabase
@@ -487,7 +496,7 @@ export function InventoryProvider({ userId, children }) {
     items, categories, status, error, online, notice, staleSince, pending,
     reload, sync, adjust: adjustWithUndo, notify, dismissNotice,
     consume, discard, convertToPacks, replace,
-    createItem, updateItem, deleteItem, uploadPhoto, deletePhoto,
+    createItem, checkJournal, updateItem, deleteItem, uploadPhoto, deletePhoto,
     createCategory, updateCategory, deleteCategory,
   }
 

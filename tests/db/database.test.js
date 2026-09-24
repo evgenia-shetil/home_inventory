@@ -62,6 +62,15 @@ describe('база', () => {
       expect(bad.filter(r => r.item_id === item.id)).toEqual([])
     })
 
+    it('товар, створений одразу з кількістю, теж потрапляє в журнал', async () => {
+      const item = await insertItem(alice, { name: 'одразу з кількістю', qty: 4 })
+      const events = await asUser(db, alice, async d => (await d.query(
+        'select kind, delta from events where item_id = $1', [item.id])).rows)
+      expect(events.map(e => [e.kind, Number(e.delta)])).toEqual([['opening', 4]])
+      const bad = await asUser(db, alice, async d => (await d.query('select * from journal_mismatches()')).rows)
+      expect(bad).toEqual([])
+    })
+
     it('переведення в упаковки не ламає суму журналу', async () => {
       const item = await asUser(db, alice, async d => (await d.query(
         `insert into items (user_id, name, qty, unit, threshold) values ($1, 'шампунь', 0, 'мл', 1) returning *`,

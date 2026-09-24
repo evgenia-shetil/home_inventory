@@ -6,13 +6,16 @@ import { planAutoSort } from '../domain/autosort.js'
 import { plural } from '../lib/plural.js'
 import Dialog from '../ui/Dialog.jsx'
 import { IconChevron } from '../ui/icons.jsx'
+import { formatNumber } from '../lib/format.js'
 import { validatePassword, authErrorMessage } from '../domain/credentials.js'
 import { daysSince } from '../domain/backup.js'
 import { exportBackup, lastBackupAt } from '../lib/backup.js'
 import { forgetUser, lastUserId } from '../lib/offlineStore.js'
 
 export default function SettingsScreen({ email }) {
-  const { items, categories, updateItem, notify, pending } = useInventory()
+  const { items, categories, updateItem, notify, pending, checkJournal } = useInventory()
+  const [checking, setChecking] = useState(false)
+  const [mismatches, setMismatches] = useState(null)
   const [confirmSignOut, setConfirmSignOut] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [lastBackup, setLastBackup] = useState(lastBackupAt)
@@ -76,6 +79,20 @@ export default function SettingsScreen({ email }) {
 
   const age = daysSince(lastBackup)
 
+  async function verify() {
+    setChecking(true)
+    try {
+      const rows = await checkJournal()
+      setMismatches(rows)
+      notify(rows.length ? `Розбіжностей: ${rows.length}` : 'Розбіжностей немає',
+        { tone: rows.length ? 'error' : 'success' })
+    } catch (err) {
+      notify(`Перевірку не виконано: ${err.message}`, { tone: 'error' })
+    } finally {
+      setChecking(false)
+    }
+  }
+
   // Словник підказок доповнюється, тож товари, заведені раніше,
   // лишаються нерозкладеними. Тут їх можна розкласти заднім числом.
   const plan = planAutoSort(items, categories)
@@ -114,6 +131,35 @@ export default function SettingsScreen({ email }) {
       <button type="button" onClick={backup} disabled={exporting}>
         {exporting ? 'Збирання…' : 'Зберегти копію'}
       </button>
+
+      {/* Кількість кожного товару має дорівнювати сумі його подій у
+          журналі. Розбіжність означає дефект — наприклад, у досиланні
+          операцій, зроблених без мережі, — і її краще побачити одразу. */}
+      <h2>Перевірка обліку</h2>
+      <p className="muted">
+        Звіряє кількість кожного товару з журналом операцій.
+      </p>
+      <button type="button" className="ghost" onClick={verify} disabled={checking}>
+        {checking ? 'Перевірка…' : 'Перевірити журнал'}
+      </button>
+      {mismatches?.length > 0 && (
+        <ul className="navlist">
+          {mismatches.map(m => (
+            <li key={m.item_id}>
+              <Link to={`/item/${m.item_id}`}>
+                <span>
+                  {m.name}
+                  <small className="muted mismatch">
+                    на полиці {formatNumber(Number(m.qty) + Number(m.in_use))},
+                    за журналом {formatNumber(Number(m.journal_qty) + Number(m.journal_in_use))}
+                  </small>
+                </span>
+                <IconChevron />
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
 
       {/* Розділи — рядки-посилання, як відомість на головних екранах.
           Раніше кожен був заголовком і кнопкою з тим самим текстом. */}

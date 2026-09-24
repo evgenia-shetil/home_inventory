@@ -38,6 +38,10 @@ export function buildRestoreSql(backup, email) {
 -- Вставити в Supabase → SQL Editor → New query повністю й натиснути Run.
 begin;
 
+-- Журнал переноситься цілком, з початковими залишками; тригер, що
+-- дописує їх для нових товарів (0018), тут мусить мовчати.
+set local zapasy.restoring = 'on';
+
 create temporary table restore_data on commit drop as
   select ${literal}::jsonb as data;
 
