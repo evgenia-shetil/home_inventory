@@ -1,0 +1,49 @@
+name: Keepalive
+
+# Безкоштовний проєкт Supabase засинає після 7 днів без звернень, а
+# розбудити його можна лише обмежений час. Раз на три дні GitHub сам
+# робить запит до бази — незалежно від того, чи відкривали застосунок.
+#
+# Ключ — той самий публічний, що вже вшитий у сторінку (інваріант 3:
+# service_role не використовується). Анонімний запит до items проходить
+# крізь Postgres і повертає порожній список через RLS — цього достатньо,
+# щоб проєкт вважався активним, і нічого не розкриває.
+#
+# Якщо запит не пройшов (проєкт уже на паузі чи ключ змінився), крок
+# падає, і GitHub надсилає лист про невдалий запуск. Це і є сигнал.
+
+on:
+  schedule:
+    - cron: '17 6 */3 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  # Потрібно лише для кроку нижче, що не дає GitHub вимкнути розклад.
+  actions: write
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Запит до бази
+        env:
+          URL: ${{ secrets.VITE_SUPABASE_URL }}
+          KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          status=$(curl -s -o body.json -w '%{http_code}' \
+            "$URL/rest/v1/items?select=id&limit=1" \
+            -H "apikey: $KEY" -H "Authorization: Bearer $KEY")
+          echo "HTTP $status: $(cat body.json)"
+          # 200 і порожній список — правильно (RLS не пускає аноніма).
+          # Будь-що інше — проєкт недоступний або доступ зламаний.
+          test "$status" = "200"
+          test "$(cat body.json)" = "[]"
+
+      # GitHub вимикає розклад у репозиторії, де 60 днів не було комітів.
+      # Без цього кроку «будильник» сам заснув би через два місяці тиші —
+      # саме тоді, коли він найпотрібніший. Повторне ввімкнення скидає лічильник.
+      - name: Не дати розкладу вимкнутись
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/keepalive.yml/enable"
