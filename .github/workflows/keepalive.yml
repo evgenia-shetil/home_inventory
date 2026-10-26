@@ -1,20 +1,26 @@
 name: Keepalive
 
-# Безкоштовний проєкт Supabase засинає після 7 днів без звернень, а
-# розбудити його можна лише обмежений час. Раз на три дні GitHub сам
-# робить запит до бази — незалежно від того, чи відкривали застосунок.
+# Безкоштовний проєкт Supabase засинає після 7 днів без звернень. Раз на
+# добу GitHub сам робить запит до бази — незалежно від того, чи відкривали
+# застосунок.
 #
-# Ключ — той самий публічний, що вже вшитий у сторінку (інваріант 3:
-# service_role не використовується). Анонімний запит до items проходить
-# крізь Postgres і повертає порожній список через RLS — цього достатньо,
-# щоб проєкт вважався активним, і нічого не розкриває.
+# Самого запиту виявилось замало: у жовтні 2026 проєкт заснув через три
+# дні після успішного пінгу, а приспаний проєкт запит уже не будить (його
+# адреса навіть не резолвиться — curl код 6). Тому перед пінгом є крок,
+# що питає стан проєкту через Management API і, якщо він на паузі,
+# відновлює його. Для цього потрібен секрет SUPABASE_ACCESS_TOKEN
+# (особистий токен Supabase); без нього крок пропускається з попередженням,
+# і лишається тільки пінг.
 #
-# Якщо запит не пройшов (проєкт уже на паузі чи ключ змінився), крок
-# падає, і GitHub надсилає лист про невдалий запуск. Це і є сигнал.
+# Ключ для пінгу — той самий публічний, що вже вшитий у сторінку
+# (інваріант 3: service_role не використовується). Анонімний запит до
+# items проходить крізь Postgres і повертає порожній список через RLS.
+#
+# Якщо після всього база недоступна, запуск падає, і GitHub надсилає лист.
 
 on:
   schedule:
-    - cron: '17 6 */3 * *'
+    - cron: '17 6 * * *'
   workflow_dispatch:
 
 permissions:
@@ -26,24 +32,58 @@ jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
+      - name: Розбудити проєкт, якщо він на паузі
+        env:
+          URL: ${{ secrets.VITE_SUPABASE_URL }}
+          TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          if [ -z "$TOKEN" ]; then
+            echo "::warning::Немає секрету SUPABASE_ACCESS_TOKEN — розбудити проєкт автоматично не вийде"
+            exit 0
+          fi
+          # https://<ref>.supabase.co → <ref>
+          ref=$(echo "$URL" | sed -E 's#https://([^.]+)\..*#\1#')
+          api="https://api.supabase.com/v1/projects/$ref"
+          status() { curl -sf "$api" -H "Authorization: Bearer $TOKEN" | jq -r .status; }
+
+          s=$(status)
+          echo "Стан проєкту: $s"
+          if [ "$s" = "INACTIVE" ]; then
+            curl -sf -X POST "$api/restore" -H "Authorization: Bearer $TOKEN"
+            echo "::warning::Проєкт був на паузі — відновлення запущено"
+          fi
+          # Відновлення триває кілька хвилин; чекаємо до 15.
+          for i in $(seq 1 30); do
+            [ "$s" = "ACTIVE_HEALTHY" ] && exit 0
+            sleep 30
+            s=$(status)
+            echo "Стан проєкту: $s"
+          done
+          echo "::error::Проєкт не повернувся в ACTIVE_HEALTHY за 15 хвилин"
+          exit 1
+
       - name: Запит до бази
         env:
           URL: ${{ secrets.VITE_SUPABASE_URL }}
           KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         run: |
-          status=$(curl -s -o body.json -w '%{http_code}' \
-            "$URL/rest/v1/items?select=id&limit=1" \
-            -H "apikey: $KEY" -H "Authorization: Bearer $KEY")
-          echo "HTTP $status: $(cat body.json)"
-          # 200 і порожній список — правильно (RLS не пускає аноніма).
-          # Будь-що інше — проєкт недоступний або доступ зламаний.
-          test "$status" = "200"
-          test "$(cat body.json)" = "[]"
+          # Щойно відновлений проєкт ще кілька хвилин може не відповідати.
+          for i in 1 2 3 4 5; do
+            status=$(curl -s -o body.json -w '%{http_code}' \
+              "$URL/rest/v1/items?select=id&limit=1" \
+              -H "apikey: $KEY" -H "Authorization: Bearer $KEY") || status=000
+            echo "HTTP $status: $(cat body.json 2>/dev/null)"
+            # 200 і порожній список — правильно (RLS не пускає аноніма).
+            [ "$status" = "200" ] && [ "$(cat body.json)" = "[]" ] && exit 0
+            sleep 60
+          done
+          exit 1
 
       # GitHub вимикає розклад у репозиторії, де 60 днів не було комітів.
       # Без цього кроку «будильник» сам заснув би через два місяці тиші —
       # саме тоді, коли він найпотрібніший. Повторне ввімкнення скидає лічильник.
       - name: Не дати розкладу вимкнутись
+        if: always()
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/keepalive.yml/enable"

@@ -1,3 +1,5 @@
+import { isNetworkError } from './offline.js'
+
 // Мінімум задає сам Supabase (Authentication → Email → Minimum password length).
 const MIN_LENGTH = 6
 
@@ -21,6 +23,11 @@ const MESSAGES = [
 
 export function authErrorMessage(error) {
   if (!error) return null
+  // Сервер, що не відповідає, — не помилка введення. Так виглядає й
+  // приспаний проєкт Supabase: його адреса тоді взагалі не резолвиться.
+  if (isNetworkError(error)) {
+    return 'Сервер недоступний. Якщо підключення до інтернету є, база могла стати на паузу'
+  }
   const found = MESSAGES.find(([needle]) => error.message?.includes(needle))
   return found ? found[1] : error.message
 }

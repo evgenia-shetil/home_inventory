@@ -31,6 +31,11 @@ describe('authErrorMessage', () => {
       .toBe('Реєстрація закрита')
   })
 
+  it('відрізняє недоступний сервер від невірного пароля', () => {
+    expect(authErrorMessage({ message: 'Failed to fetch' })).toMatch(/^Сервер недоступний/)
+    expect(authErrorMessage({ message: 'Load failed' })).toMatch(/^Сервер недоступний/)
+  })
+
   it('віддає оригінал, коли переклад невідомий', () => {
     expect(authErrorMessage({ message: 'Something odd' })).toBe('Something odd')
   })
