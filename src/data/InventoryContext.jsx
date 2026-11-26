@@ -9,6 +9,9 @@ import { loadSnapshot, saveSnapshot, loadQueue, saveQueue } from '../lib/offline
 
 const InventoryContext = createContext(null)
 
+// Скільки дані вважаються свіжими після читання з бази.
+const REFRESH_AFTER_MS = 30_000
+
 export function useInventory() {
   const ctx = useContext(InventoryContext)
   if (!ctx) throw new Error('useInventory поза InventoryProvider')
@@ -50,6 +53,15 @@ export function InventoryProvider({ userId, children }) {
     })
   }, [])
 
+  // Момент останнього успішного читання з бази. Потрібен, щоб при
+  // поверненні на екран перечитувати лише дані, що встигли застаріти.
+  const fetchedAt = useRef(0)
+
+  // Операції над одним товаром шикуються в чергу: інакше два швидкі тапи
+  // читають той самий стан «до», і фактична зміна другого виходить удвічі
+  // більшою, а скасування повертає зайве.
+  const queues = useRef(new Map())
+
   // quiet — без скелетона: коли на екрані вже є дані (знімок чи
   // попередня версія), миготіння порожнім екраном гірше за мить старих чисел.
   const reload = useCallback(async ({ quiet = false } = {}) => {
@@ -84,6 +96,7 @@ export function InventoryProvider({ userId, children }) {
     setCategories(catsRes.data)
     setStaleSince(null)
     setStatus('ready')
+    fetchedAt.current = Date.now()
   }, [userId])
 
   // Знімок оновлюється лише зі свіжих даних і лише з порожньою чергою.
@@ -172,23 +185,26 @@ export function InventoryProvider({ userId, children }) {
     () => flushQueue().then(() => reload({ quiet: true })),
     [flushQueue, reload])
 
-  // Сигнал «мережа зʼявилась» ненадійний: у магазині телефон буває
-  // «онлайн» без робочого звʼязку. Тому ще одна спроба — щоразу, коли
-  // застосунок повертається на екран.
+  // Повернення на екран — привід перечитати базу. Сигнал «мережа
+  // зʼявилась» ненадійний: у магазині телефон буває «онлайн» без робочого
+  // звʼязку. А застосунок, що тижнями висить у фоні на телефоні, інакше
+  // не побачив би змін з іншого пристрою чи з SQL Editor до повного
+  // перезапуску — так і сталось 2026-11-26.
+  // Свіжі дані не чіпаємо (швидке перемикання між застосунками не має
+  // слати запит щоразу), а поки тап іще летить на сервер — теж: відповідь
+  // читання могла б прийти пізніше за підтвердження і повернути старе число.
   useEffect(() => {
     const onShow = () => {
-      if (document.visibilityState === 'visible' && navigator.onLine && (staleSince || pending)) sync()
+      if (document.visibilityState !== 'visible' || !navigator.onLine) return
+      if (staleSince || pending) return sync()
+      if (status !== 'ready' || queues.current.size) return
+      if (Date.now() - fetchedAt.current > REFRESH_AFTER_MS) reload({ quiet: true })
     }
     document.addEventListener('visibilitychange', onShow)
     return () => document.removeEventListener('visibilitychange', onShow)
-  }, [staleSince, pending, sync])
+  }, [staleSince, pending, status, sync, reload])
 
   const dismissNotice = useCallback(() => setNotice(null), [])
-
-  // Операції над одним товаром шикуються в чергу: інакше два швидкі тапи
-  // читають той самий стан «до», і фактична зміна другого виходить удвічі
-  // більшою, а скасування повертає зайве.
-  const queues = useRef(new Map())
 
   const runQueued = useCallback((itemId, task) => {
     const previous = queues.current.get(itemId) ?? Promise.resolve()
